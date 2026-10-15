@@ -6,8 +6,8 @@ import './CartControl.css'
 
 interface CartControlProps {
   productId: number
-  /** full — большая кнопка на странице товара, compact — круглая в углу плитки */
-  variant?: 'full' | 'compact'
+  /** full — большая кнопка на странице товара, compact — круглая в углу плитки, row — счётчик в строке корзины */
+  variant?: 'full' | 'compact' | 'row'
   /** Можно ли сейчас купить (в наличии и на продаже) */
   canBuy?: boolean
   /** Сколько есть у продавца — «+» блокируется на этом числе. Не знаем — проверит сервер. */
@@ -92,7 +92,7 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
   // Уже в корзине: «− N +»
   return (
     <div className={`cart-control cart-control--${variant}`}>
-      {!compact && <span className="cart-control__label">В корзине</span>}
+      {variant === 'full' && <span className="cart-control__label">В корзине</span>}
       <div className="cart-control__stepper" role="group" aria-label="Количество в корзине">
         <button
           type="button"
@@ -118,7 +118,7 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
           +
         </button>
       </div>
-      {!compact && !canAddMore && canBuy && <span className="cart-control__hint">Больше нет в наличии</span>}
+      {variant === 'full' && !canAddMore && canBuy && <span className="cart-control__hint">Больше нет в наличии</span>}
       {errorNode}
     </div>
   )

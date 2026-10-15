@@ -3,6 +3,9 @@ import { useAuth } from '@/features/auth'
 import { cartApi, type Cart } from '@/shared/api'
 import { CartContext, type CartContextValue, type CartStatus } from './CartContext'
 
+// Ключ «товара» для очистки всей корзины в списке идущих запросов (id товаров начинаются с 1)
+const CLEAR_KEY = 0
+
 /**
  * Корзина текущего пользователя — одна на приложение: значок в шапке, кнопки в ленте
  * и на странице товара видят одно и то же. Любое изменение возвращает корзину целиком,
@@ -85,13 +88,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     return {
       status,
+      cart,
       itemsCount: cart?.items_count ?? 0,
       quantityOf: (productId) => quantities.get(productId) ?? 0,
-      isPending: (productId) => pending.has(productId),
+      isPending: (productId) => pending.has(productId) || pending.has(CLEAR_KEY),
       add: (productId) => run(productId, () => cartApi.add(productId)),
       setQuantity: (productId, quantity) => run(productId, () => cartApi.setQuantity(productId, quantity)),
+      remove: (productId) => run(productId, () => cartApi.remove(productId)),
+      clear: () => run(CLEAR_KEY, cartApi.clear),
+      refresh,
     }
-  }, [authStatus, loadStatus, cart, quantities, pending, run])
+  }, [authStatus, loadStatus, cart, quantities, pending, run, refresh])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

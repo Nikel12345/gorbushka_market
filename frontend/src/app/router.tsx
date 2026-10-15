@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { GuestOnly, RequireAuth } from '@/features/auth'
 import { ShopRoute } from '@/features/seller'
 import { CartPage } from '@/pages/cart'
+import { CheckoutPage } from '@/pages/checkout'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
 import { OrdersPage } from '@/pages/orders'
@@ -46,7 +47,22 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
-      { path: 'cart', element: <CartPage /> },
+      {
+        path: 'cart',
+        element: (
+          <RequireAuth>
+            <CartPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'checkout',
+        element: (
+          <RequireAuth>
+            <CheckoutPage />
+          </RequireAuth>
+        ),
+      },
       {
         path: 'orders',
         element: (
