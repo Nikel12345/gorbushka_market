@@ -602,3 +602,8 @@ textarea.ui-input {
     position: static;
   }
 }
+
+/* Метка бесконечной прокрутки — занимает место, но не видна */
+.ui-infinite-trigger {
+  height: 1px;
+}

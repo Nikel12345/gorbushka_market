@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, ScrollRestoration } from 'react-router'
 import { useAuth } from '@/features/auth'
+import { useCart } from '@/features/cart'
 import { HeaderSearch } from './HeaderSearch'
 import { Logo } from './Logo'
 import { CartIcon, LoginIcon, OrdersIcon, SellIcon } from './MarketNavIcons'
@@ -12,6 +13,7 @@ const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
 /** Каркас витрины: шапка с поиском и разделами покупателя. В кабинете продавца — свой каркас. */
 export function AppLayout() {
   const { user, status } = useAuth()
+  const { itemsCount } = useCart()
 
   return (
     <div className="market">
@@ -25,7 +27,14 @@ export function AppLayout() {
               <span className="market-nav__label">Заказы</span>
             </NavLink>
             <NavLink to="/cart" className={navLinkClassName}>
-              <CartIcon />
+              <span className="market-nav__icon-wrap">
+                <CartIcon />
+                {itemsCount > 0 && (
+                  <span className="market-nav__badge" aria-label={`товаров в корзине: ${itemsCount}`}>
+                    {itemsCount > 99 ? '99+' : itemsCount}
+                  </span>
+                )}
+              </span>
               <span className="market-nav__label">Корзина</span>
             </NavLink>
             <NavLink to="/seller" className={navLinkClassName}>
@@ -49,6 +58,8 @@ export function AppLayout() {
       <main className="market-main">
         <Outlet />
       </main>
+      {/* Новая страница — сверху, «назад» — на прежнее место (лента на главной) */}
+      <ScrollRestoration />
     </div>
   )
 }

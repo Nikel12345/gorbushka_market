@@ -5,6 +5,7 @@ import { CartPage } from '@/pages/cart'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
 import { OrdersPage } from '@/pages/orders'
+import { ProductPage } from '@/pages/product'
 import { ProfilePage } from '@/pages/profile'
 import { RegisterPage } from '@/pages/register'
 import { SellerHomePage } from '@/pages/seller-home'
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'products/:productId', element: <ProductPage /> },
       {
         path: 'login',
         element: (

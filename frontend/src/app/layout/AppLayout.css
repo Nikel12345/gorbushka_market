@@ -105,6 +105,29 @@
   fill: #8a8a8a;
 }
 
+.market-nav__icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Счётчик на иконке корзины */
+.market-nav__badge {
+  position: absolute;
+  top: -5px;
+  left: 14px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 2px solid var(--color-surface);
+  border-radius: 9px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
 .market-nav__label {
   font-size: 12px;
   line-height: 18px;
@@ -253,7 +276,30 @@
     padding: 0;
   }
 
-  .market-nav__label {
+  .market-nav__icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Счётчик на иконке корзины */
+.market-nav__badge {
+  position: absolute;
+  top: -5px;
+  left: 14px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 2px solid var(--color-surface);
+  border-radius: 9px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.market-nav__label {
     position: absolute;
     width: 1px;
     height: 1px;

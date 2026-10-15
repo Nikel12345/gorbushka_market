@@ -12,10 +12,12 @@ interface ProductTileProps {
   badge?: ReactNode
   /** Строка под названием: остаток, магазин, дата */
   meta?: ReactNode
+  /** Кнопка в углу фото (например, «в корзину»). Лежит поверх плитки, а не внутри ссылки. */
+  action?: ReactNode
 }
 
 /** Плитка товара в сетке (.product-grid): фото, цена, название. */
-export function ProductTile({ product, to, badge, meta }: ProductTileProps) {
+export function ProductTile({ product, to, badge, meta, action }: ProductTileProps) {
   const content = (
     <>
       <ProductImage src={product.image} alt={product.title}>
@@ -29,11 +31,19 @@ export function ProductTile({ product, to, badge, meta }: ProductTileProps) {
     </>
   )
 
-  return to ? (
+  const tile = to ? (
     <Link className="product-tile product-tile--link" to={to}>
       {content}
     </Link>
   ) : (
     <div className="product-tile">{content}</div>
+  )
+
+  if (!action) return tile
+  return (
+    <div className="product-tile-wrap">
+      {tile}
+      <div className="product-tile__action">{action}</div>
+    </div>
   )
 }
