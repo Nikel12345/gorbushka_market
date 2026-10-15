@@ -1,8 +1,10 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { GuestOnly, RequireAuth } from '@/features/auth'
 import { ShopRoute } from '@/features/seller'
+import { CartPage } from '@/pages/cart'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
+import { OrdersPage } from '@/pages/orders'
 import { ProfilePage } from '@/pages/profile'
 import { RegisterPage } from '@/pages/register'
 import { SellerHomePage } from '@/pages/seller-home'
@@ -13,6 +15,7 @@ import { AppLayout } from './layout/AppLayout'
 import { SellerLayout } from './layout/SellerLayout'
 
 export const router = createBrowserRouter([
+  // Витрина: шапка с поиском и разделами покупателя на всех страницах
   {
     element: <AppLayout />,
     children: [
@@ -41,9 +44,18 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
+      { path: 'cart', element: <CartPage /> },
+      {
+        path: 'orders',
+        element: (
+          <RequireAuth>
+            <OrdersPage />
+          </RequireAuth>
+        ),
+      },
     ],
   },
-  // Кабинет продавца — со своим каркасом (панель + меню слева)
+  // Кабинет продавца — со своим каркасом (панель + меню справа), без шапки витрины
   {
     path: 'seller',
     element: (

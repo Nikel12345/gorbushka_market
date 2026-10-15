@@ -3,8 +3,10 @@ import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate } from 'react
 import { useAuth } from '@/features/auth'
 import { SellerContext, type SellerContextValue } from '@/features/seller'
 import { getErrorMessage, sellerApi, type ShopBrief } from '@/shared/api'
-import { useRequest } from '@/shared/lib'
-import { Card, ErrorState, Loader } from '@/shared/ui'
+import { formatPersonName, useRequest } from '@/shared/lib'
+import { Avatar, Button, Card, ErrorState, Loader } from '@/shared/ui'
+import { Logo } from './Logo'
+import { OrdersIcon, ProductsIcon, ProfileIcon } from './SellerNavIcons'
 import './SellerLayout.css'
 
 const loadProfile = (signal: AbortSignal) => sellerApi.profile({ signal })
@@ -12,7 +14,7 @@ const loadProfile = (signal: AbortSignal) => sellerApi.profile({ signal })
 const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'seller-nav__link seller-nav__link--active' : 'seller-nav__link'
 
-/** Каркас кабинета продавца: верхняя панель, меню слева, контент. */
+/** Каркас кабинета продавца: верхняя панель, меню справа, контент. Шапки витрины здесь нет. */
 export function SellerLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -71,9 +73,7 @@ export function SellerLayout() {
   return (
     <div className="seller">
       <header className="seller-bar">
-        <Link to="/" className="seller-bar__logo">
-          Gorbushka Market
-        </Link>
+        <Logo />
         <span className="seller-bar__section">Кабинет продавца</span>
 
         {shops.length > 1 && (
@@ -93,10 +93,13 @@ export function SellerLayout() {
         {shops.length === 1 && <span className="seller-bar__shop-name">{shops[0].name}</span>}
 
         <span className="seller-bar__spacer" />
-        <span className="seller-bar__user">{user?.email}</span>
-        <button type="button" className="seller-bar__action" onClick={handleLogout}>
-          Выйти
-        </button>
+        {user && (
+          <Link to="/seller/profile" className="seller-bar__user" title={user.email}>
+            <Avatar name={formatPersonName(user)} size={32} />
+            <span className="seller-bar__email">{user.email}</span>
+          </Link>
+        )}
+        <Button onClick={handleLogout}>Выйти</Button>
       </header>
 
       <div className="seller-body">
@@ -104,14 +107,17 @@ export function SellerLayout() {
           {activeShopId !== null && (
             <>
               <NavLink to={`/seller/shops/${activeShopId}/products`} className={navLinkClassName}>
+                <ProductsIcon />
                 Товары
               </NavLink>
               <NavLink to={`/seller/shops/${activeShopId}/orders`} className={navLinkClassName}>
+                <OrdersIcon />
                 Заказы
               </NavLink>
             </>
           )}
           <NavLink to="/seller/profile" className={navLinkClassName}>
+            <ProfileIcon />
             Профиль
           </NavLink>
         </nav>

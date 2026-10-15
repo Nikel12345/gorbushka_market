@@ -1,0 +1,39 @@
+.app-logo {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.app-logo__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.app-logo__text {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.app-logo__light {
+  margin-left: 3px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 720px) {
+  .app-logo__light {
+    display: none;
+  }
+}
