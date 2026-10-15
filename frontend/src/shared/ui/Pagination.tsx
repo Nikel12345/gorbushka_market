@@ -18,11 +18,11 @@ export function Pagination({ page, total, hasPrevious, hasNext, disabled, onChan
   return (
     <nav className="ui-pagination" aria-label="Страницы">
       <span className="ui-pagination__total">Всего: {total}</span>
-      <Button variant="text" disabled={disabled || !hasPrevious} onClick={() => onChange(page - 1)}>
+      <Button disabled={disabled || !hasPrevious} onClick={() => onChange(page - 1)}>
         ‹ Назад
       </Button>
       <span>Страница {page}</span>
-      <Button variant="text" disabled={disabled || !hasNext} onClick={() => onChange(page + 1)}>
+      <Button disabled={disabled || !hasNext} onClick={() => onChange(page + 1)}>
         Вперёд ›
       </Button>
     </nav>

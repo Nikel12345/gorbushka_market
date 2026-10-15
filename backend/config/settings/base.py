@@ -115,6 +115,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+PRODUCT_IMAGE_MAX_BYTES = env.int("PRODUCT_IMAGE_MAX_MB", default=5) * 1024 * 1024
+
 
 # Django REST framework
 

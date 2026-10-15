@@ -1,44 +1,105 @@
-.products__title {
-  font-weight: 500;
-  color: var(--color-text);
-  text-decoration: none;
+/* Контейнер списка: полоска загрузки поверх сетки */
+.products {
+  position: relative;
 }
 
-.products__title:hover,
-.products__title:focus-visible {
-  color: var(--color-primary);
-  text-decoration: underline;
+/* --- Карточка товара (диалог) --- */
+
+.product-card {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 24px;
+  align-items: start;
 }
 
-.products__description {
-  max-width: 420px;
-  overflow: hidden;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.product-card__image {
+  border: 1px solid var(--color-divider);
 }
 
-.products__date {
-  white-space: nowrap;
-  color: var(--color-text-secondary);
+.product-card__price {
+  margin: 0 0 12px;
+  font-size: 26px;
+  font-weight: 400;
 }
 
 .product-card__description {
   margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .product-card__section-title {
-  margin: 20px 0 8px;
-  font-size: 14px;
+  margin: 20px 0 6px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .product-card__confirm {
   flex-basis: 100%;
-  margin: 0 8px 8px;
-  font-size: 14px;
+  margin: 0;
+  font-size: 13px;
+}
+
+/* --- Фото в форме добавления и в карточке --- */
+
+.product-form__photo {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.product-form__preview {
+  border: 1px solid var(--color-divider);
+}
+
+.product-form__photo-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.product-form__photo-buttons,
+.product-card__photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-form__file-name {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.product-card__media {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.product-card__uploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .product-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .product-card__image {
+    width: 200px;
+  }
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react'
 
 interface DialogProps {
   title: string
+  size?: 'default' | 'wide'
   onClose: () => void
   actions?: ReactNode
   children: ReactNode
@@ -11,7 +12,7 @@ interface DialogProps {
  * Модальное окно на нативном <dialog>: ловушку фокуса, Esc и затемнение фона даёт браузер.
  * Открыто, пока смонтировано. Начальный фокус — на элемент с data-autofocus, иначе на само окно.
  */
-export function Dialog({ title, onClose, actions, children }: DialogProps) {
+export function Dialog({ title, size = 'default', onClose, actions, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export function Dialog({ title, onClose, actions, children }: DialogProps) {
   return (
     <dialog
       ref={ref}
-      className="ui-dialog"
+      className={size === 'wide' ? 'ui-dialog ui-dialog--wide' : 'ui-dialog'}
       aria-label={title}
       tabIndex={-1}
       onCancel={(event) => {

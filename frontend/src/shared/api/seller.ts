@@ -1,5 +1,7 @@
 import type { User } from './auth'
 import { apiRequest, type ApiRequestInit } from './client'
+import { toFormData } from './formData'
+import { productFilterQuery, type ProductFilterParams } from './productFilters'
 import { withQuery } from './query'
 import type { Paginated } from './types'
 
@@ -38,6 +40,8 @@ export interface Product {
   /** Денежные поля приходят строкой ("79990.00") */
   price: string
   quantity: number
+  /** URL фото (локально относительный /media/...), null — фото нет, показывается заглушка */
+  image: string | null
   status: ProductStatus
   status_display: string
   created_at: string
@@ -49,9 +53,10 @@ export interface ProductCreatePayload {
   price: string
   quantity?: number
   description?: string
+  image?: File | null
 }
 
-export interface ProductListParams {
+export interface ProductListParams extends ProductFilterParams {
   page?: number
 }
 
@@ -99,17 +104,25 @@ export const sellerApi = {
   createShop: (payload: ShopCreatePayload) =>
     apiRequest<Shop>('/seller/shops/', { method: 'POST', json: payload }),
 
-  listProducts: (shopId: number, params: ProductListParams = {}, options?: RequestOptions) =>
+  listProducts: (shopId: number, { page, ...filters }: ProductListParams = {}, options?: RequestOptions) =>
     apiRequest<Paginated<Product>>(
-      withQuery(`${shopPath(shopId)}/products/`, { page: params.page }),
+      withQuery(`${shopPath(shopId)}/products/`, { page, ...productFilterQuery(filters) }),
       options,
     ),
 
   getProduct: (shopId: number, productId: number, options?: RequestOptions) =>
     apiRequest<Product>(`${shopPath(shopId)}/products/${productId}/`, options),
 
+  /** multipart: вместе с полями может уйти файл фото */
   createProduct: (shopId: number, payload: ProductCreatePayload) =>
-    apiRequest<Product>(`${shopPath(shopId)}/products/`, { method: 'POST', json: payload }),
+    apiRequest<Product>(`${shopPath(shopId)}/products/`, { method: 'POST', body: toFormData(payload) }),
+
+  /** Заменить фото (файл) или убрать его (null) */
+  updateProductImage: (shopId: number, productId: number, image: File | null) =>
+    apiRequest<Product>(
+      `${shopPath(shopId)}/products/${productId}/`,
+      image ? { method: 'PATCH', body: toFormData({ image }) } : { method: 'PATCH', json: { image: null } },
+    ),
 
   /** Снять с продажи (мягкое удаление на бэке) */
   archiveProduct: (shopId: number, productId: number) =>

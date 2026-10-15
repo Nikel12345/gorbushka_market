@@ -33,10 +33,15 @@ class SellerProductListCreateView(ProductFilterMixin, SellerShopMixin, generics.
         serializer.save(shop=self.get_shop())
 
 
-class SellerProductDetailView(SellerShopMixin, generics.RetrieveDestroyAPIView):
-    """GET — товар, DELETE — снять с продажи."""
+class SellerProductDetailView(SellerShopMixin, generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET — товар, PATCH — изменить (JSON или multipart с картинкой), DELETE — снять с продажи.
+    Владение проверяет SellerShopMixin: магазин должен быть managed_by(user),
+    а товар — из этого магазина; иначе 404.
+    """
 
     serializer_class = SellerProductSerializer
+    http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
         return Product.objects.filter(shop=self.get_shop()).on_sale()

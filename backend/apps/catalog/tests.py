@@ -1,8 +1,12 @@
 import base64
+import io
 import json
 from decimal import Decimal
 
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
+from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -192,6 +196,7 @@ class ProductFeedTests(APITestCase):
                 "id": product.id,
                 "title": "iPhone 15",
                 "price": "79990.00",
+                "image": None,
                 "in_stock": False,
                 "shop": {"id": self.shop.id, "name": "Павильон 12"},
             },
@@ -368,3 +373,253 @@ class SellerProductFiltersTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([p["id"] for p in response.data["results"]], [match.id])
         self.assertIn("count", response.data)
+
+
+def make_image(name="photo.png", size=(10, 10), fmt="PNG"):
+    buffer = io.BytesIO()
+    Image.new("RGB", size, color=(200, 30, 30)).save(buffer, format=fmt)
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type=f"image/{fmt.lower()}")
+
+
+class SellerProductPatchTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.other = User.objects.create_user(email="other@example.com", password="x")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.foreign_shop = Shop.objects.create(owner=self.other, name="Чужой")
+        self.product = Product.objects.create(
+            shop=self.shop, title="iPhone 15", description="128 ГБ", price=Decimal("79990"), quantity=3
+        )
+        self.client.force_login(self.owner)
+
+    def url(self, product=None, shop=None):
+        return reverse("seller-product-detail", args=[(shop or self.shop).id, (product or self.product).id])
+
+    def test_owner_can_patch_fields(self):
+        response = self.client.patch(self.url(), {"price": "74990.00", "quantity": 5}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["price"], "74990.00")
+        self.assertEqual(response.data["quantity"], 5)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.price, Decimal("74990.00"))
+        self.assertEqual(self.product.title, "iPhone 15")
+        self.assertEqual(self.product.description, "128 ГБ")
+
+    def test_title_change_is_searchable(self):
+        self.client.patch(self.url(), {"title": "Samsung Galaxy"}, format="json")
+
+        feed = self.client.get(reverse("product-feed"), {"q": "galaxy"})
+        self.assertEqual([p["id"] for p in feed.data["results"]], [self.product.id])
+
+    def test_other_seller_cannot_patch(self):
+        self.client.force_login(self.other)
+
+        responses = [
+            # через чужой (для него) магазин
+            self.client.patch(self.url(), {"price": "1"}, format="json"),
+            # подставив свой магазин в URL
+            self.client.patch(self.url(shop=self.foreign_shop), {"price": "1"}, format="json"),
+        ]
+
+        for response in responses:
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.price, Decimal("79990"))
+
+    def test_anonymous_cannot_patch(self):
+        self.client.logout()
+
+        response = self.client.patch(self.url(), {"price": "1"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_cannot_change_shop_or_status(self):
+        response = self.client.patch(
+            self.url(), {"shop": self.foreign_shop.id, "status": "archived"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.shop, self.shop)
+        self.assertEqual(self.product.status, Product.Status.ACTIVE)
+
+    def test_validation(self):
+        response = self.client.patch(self.url(), {"price": "0", "quantity": -1, "title": ""}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(set(response.data), {"price", "quantity", "title"})
+
+    def test_archived_product_cannot_be_patched(self):
+        self.product.status = Product.Status.ARCHIVED
+        self.product.save()
+
+        response = self.client.patch(self.url(), {"price": "1"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_put_is_not_allowed(self):
+        response = self.client.put(self.url(), {"title": "X", "price": "1"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_order_history_keeps_old_price(self):
+        from apps.orders.services import OrderLine, create_order
+
+        order = create_order(buyer=self.other, shop=self.shop, lines=[OrderLine(self.product.id, 1)])
+
+        self.client.patch(self.url(), {"price": "1.00", "title": "Новое"}, format="json")
+
+        item = order.items.get()
+        self.assertEqual(item.price, Decimal("79990"))
+        self.assertEqual(item.title, "iPhone 15")
+
+
+class ProductImageTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("10"))
+        self.client.force_login(self.owner)
+        self.detail_url = reverse("seller-product-detail", args=[self.shop.id, self.product.id])
+
+    def upload(self, image=None):
+        return self.client.patch(self.detail_url, {"image": image or make_image()}, format="multipart")
+
+    def test_without_image_everywhere_returns_null(self):
+        urls = [
+            self.detail_url,
+            reverse("product-detail", args=[self.product.id]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                self.assertIsNone(self.client.get(url).data["image"])
+        self.assertIsNone(self.client.get(reverse("product-feed")).data["results"][0]["image"])
+
+    def test_upload_image_via_patch(self):
+        response = self.upload()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.image.name.startswith("products/"))
+        self.assertTrue(self.product.image.name.endswith(".png"))
+        self.assertNotIn("photo", self.product.image.name)  # исходное имя не сохраняется
+        self.assertEqual(response.data["image"], f"/media/{self.product.image.name}")
+
+        card = self.client.get(reverse("product-feed")).data["results"][0]
+        self.assertEqual(card["image"], response.data["image"])
+
+    def test_create_product_with_image(self):
+        response = self.client.post(
+            reverse("seller-product-list", args=[self.shop.id]),
+            {"title": "С фото", "price": "100", "image": make_image()},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertTrue(response.data["image"].startswith("/media/products/"))
+
+    def test_replacing_image_deletes_old_file_after_commit(self):
+        self.upload()
+        self.product.refresh_from_db()
+        old_name = self.product.image.name
+        storage = self.product.image.storage
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.upload(make_image("second.jpg", fmt="JPEG"))
+
+        self.product.refresh_from_db()
+        self.assertNotEqual(self.product.image.name, old_name)
+        self.assertFalse(storage.exists(old_name))
+        self.assertTrue(storage.exists(self.product.image.name))
+
+    def test_remove_image_with_null_json_or_empty_multipart(self):
+        for payload, fmt in [({"image": None}, "json"), ({"image": ""}, "multipart")]:
+            with self.subTest(fmt=fmt):
+                self.upload()
+                self.product.refresh_from_db()
+                old_name = self.product.image.name
+                storage = self.product.image.storage
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.client.patch(self.detail_url, payload, format=fmt)
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+                self.assertIsNone(response.data["image"])
+                self.product.refresh_from_db()
+                self.assertEqual(self.product.image.name, "")
+                self.assertFalse(storage.exists(old_name))
+
+    def test_patch_without_image_keeps_it(self):
+        self.upload()
+        self.product.refresh_from_db()
+        name = self.product.image.name
+
+        self.client.patch(self.detail_url, {"price": "20"}, format="json")
+
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.image.name, name)
+
+    def test_not_an_image_is_rejected(self):
+        fake = SimpleUploadedFile("virus.png", b"definitely not an image", content_type="image/png")
+
+        response = self.upload(fake)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("image", response.data)
+
+    @override_settings(PRODUCT_IMAGE_MAX_BYTES=1024)
+    def test_too_large_image_is_rejected(self):
+        big = make_image("big.bmp", size=(400, 400), fmt="BMP")  # ~480 КБ без сжатия
+
+        response = self.upload(big)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("image", response.data)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.image.name, "")
+
+    def test_missing_file_in_storage_does_not_crash(self):
+        # В БД путь есть, а файла нет (удалили руками, не доехал до S3 и т.п.)
+        Product.objects.filter(pk=self.product.pk).update(image="products/lost.png")
+
+        for url in [reverse("product-feed"), reverse("product-detail", args=[self.product.id]), self.detail_url]:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, status.HTTP_200_OK)
+
+
+class ShopPageCursorTests(APITestCase):
+    """Листалка товаров на странице магазина = общая лента с ?shop=, курсор работает."""
+
+    def test_cursor_walk_within_shop_with_filters_and_sort(self):
+        seller = User.objects.create_user(email="seller@example.com", password="x")
+        shop = Shop.objects.create(owner=seller, name="Павильон 12")
+        other = Shop.objects.create(owner=seller, name="Другой")
+        mine = [
+            Product.objects.create(shop=shop, title=f"Чехол {i}", price=Decimal(price))
+            for i, price in enumerate(["300", "100", "200", "100", "500"])
+        ]
+        for i in range(5):
+            Product.objects.create(shop=other, title=f"Чехол {i}", price=Decimal("100"))
+        Product.objects.create(shop=shop, title="Удалённый", price=Decimal("1"), status=Product.Status.ARCHIVED)
+
+        url = reverse("product-feed")
+        for sort, expected in {
+            "new": [p.id for p in reversed(mine)],
+            "price_asc": [p.id for p in sorted(mine, key=lambda p: (p.price, p.id))],
+        }.items():
+            with self.subTest(sort=sort):
+                ids, cursor, pages = [], None, 0
+                while True:
+                    params = {"shop": shop.id, "q": "чехол", "sort": sort, "page_size": 2}
+                    if cursor:
+                        params["cursor"] = cursor
+                    response = self.client.get(url, params)
+                    self.assertEqual(response.status_code, status.HTTP_200_OK)
+                    ids += [p["id"] for p in response.data["results"]]
+                    cursor = response.data["next_cursor"]
+                    pages += 1
+                    if cursor is None:
+                        break
+                self.assertEqual(ids, expected)
+                self.assertEqual(pages, 3)

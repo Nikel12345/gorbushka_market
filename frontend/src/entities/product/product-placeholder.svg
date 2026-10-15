@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Заглушка фото товара: коробка с наклейкой. Заменяется файлом с тем же именем. -->
+  <rect width="200" height="200" fill="#f4f4f4"/>
+  <ellipse cx="100" cy="152" rx="58" ry="10" fill="#e4e4e4"/>
+
+  <!-- грани коробки -->
+  <polygon points="48,74 100,96 100,148 48,126" fill="#d9bd92"/>
+  <polygon points="100,96 152,74 152,126 100,148" fill="#c9a774"/>
+  <polygon points="100,52 152,74 100,96 48,74" fill="#e8d2ac"/>
+
+  <!-- скотч по шву крышки и вниз по боковой грани -->
+  <polygon points="68,65.5 120,87.5 132,82.5 80,60.5" fill="#f4e6cb"/>
+  <polygon points="120,87.5 132,82.5 132,102.5 120,107.5" fill="#e3cfa6"/>
+
+  <!-- наклейка со штрихкодом -->
+  <polygon points="58,94 86,106 86,124 58,112" fill="#ffffff" opacity="0.9"/>
+  <g stroke="#9e9e9e" stroke-width="1.6">
+    <line x1="63" y1="99" x2="63" y2="110"/>
+    <line x1="67" y1="100.7" x2="67" y2="111.7"/>
+    <line x1="70" y1="102" x2="70" y2="113"/>
+    <line x1="74.5" y1="103.9" x2="74.5" y2="114.9"/>
+    <line x1="78" y1="105.4" x2="78" y2="116.4"/>
+    <line x1="81" y1="106.7" x2="81" y2="117.7"/>
+  </g>
+
+  <!-- рёбра -->
+  <g fill="none" stroke="#b8945e" stroke-width="1" stroke-linejoin="round" opacity="0.6">
+    <polyline points="48,74 100,96 152,74"/>
+    <line x1="100" y1="96" x2="100" y2="148"/>
+  </g>
+</svg>

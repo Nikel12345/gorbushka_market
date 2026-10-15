@@ -4,6 +4,8 @@ import { useOutletContext } from 'react-router'
 export interface ProductsOutletContext {
   closeDialog: () => void
   onProductCreated: () => void
+  /** Товар изменён (например, фото) — обновить список, диалог остаётся открытым */
+  onProductUpdated: () => void
   onProductArchived: () => void
 }
 

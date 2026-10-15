@@ -22,6 +22,11 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_BACKEND_ORIGIN || 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
+        // Загруженные файлы (фото товаров): API отдаёт относительные URL /media/...
+        '/media': {
+          target: env.VITE_BACKEND_ORIGIN || 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
       },
     },
   }

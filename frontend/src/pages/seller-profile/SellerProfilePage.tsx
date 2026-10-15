@@ -1,16 +1,25 @@
 import { Link } from 'react-router'
 import { useSeller } from '@/features/seller'
 import { formatDate, formatPersonName } from '@/shared/lib'
-import { Card, EmptyState, LinkButton, PageHeader } from '@/shared/ui'
+import { Avatar, Card, EmptyState, LinkButton } from '@/shared/ui'
 import './SellerProfilePage.css'
 
 /** Профиль продавца: данные пользователя (User) и его магазины. */
 export function SellerProfilePage() {
   const { profile } = useSeller()
+  const name = formatPersonName(profile)
 
   return (
     <>
-      <PageHeader title="Профиль" subtitle={formatPersonName(profile)} />
+      <section className="profile-hero">
+        <Avatar name={name} size={72} />
+        <div className="profile-hero__text">
+          <h1 className="profile-hero__name">{name}</h1>
+          <p className="profile-hero__meta">
+            {profile.email} · на площадке с {formatDate(profile.date_joined)}
+          </p>
+        </div>
+      </section>
 
       <Card title="Личные данные">
         <dl className="ui-props">

@@ -143,14 +143,28 @@ frontend/src/
 | GET    | `/api/v1/seller/shops/{shop_id}/` | магазин: публичные поля + служебные |
 | PATCH  | `/api/v1/seller/shops/{shop_id}/` | `{name?, description?}` |
 | GET    | `/api/v1/seller/shops/{shop_id}/products/` | товары на продаже (пагинация, фильтры ленты: `q`, `price_min`, ...) |
-| POST   | `/api/v1/seller/shops/{shop_id}/products/` | `{title, price, quantity?, description?}` — добавить товар |
+| POST   | `/api/v1/seller/shops/{shop_id}/products/` | `{title, price, quantity?, description?, image?}` — добавить товар |
 | GET    | `/api/v1/seller/shops/{shop_id}/products/{id}/` | товар |
+| PATCH  | `/api/v1/seller/shops/{shop_id}/products/{id}/` | `{title?, description?, price?, quantity?, image?}` — JSON или multipart |
 | DELETE | `/api/v1/seller/shops/{shop_id}/products/{id}/` | снять с продажи (мягкое удаление) |
 | GET    | `/api/v1/seller/shops/{shop_id}/orders/` | история заказов, новые сверху; фильтры `OrderFilter` (как у покупателя) |
 
 - Списки товаров и заказов пагинированы: `{count, next, previous, results}`, `?page=N`, по 20.
 - Денежные поля приходят строками (`"79990.00"`) — без потери точности.
 - Товар не удаляется физически (на него ссылаются заказы), а получает статус `archived`.
+- Изменять/удалять товар может только тот, кто управляет магазином (`Shop.objects.managed_by`); иначе `404`.
+  `shop` и `status` через PATCH не меняются.
+
+### Фото товара
+
+- Поле `image` есть в кабинете, ленте и на странице товара: строка-URL (`/media/products/<uuid>.png`) или `null`.
+  **Фронт должен показывать заглушку при `null`.**
+- Загрузка — `multipart/form-data` (`POST` при создании или `PATCH`), поле `image`. Убрать фото —
+  `PATCH {"image": null}` (JSON) или пустое `image=` в multipart. Без поля `image` фото не меняется.
+- Проверки: файл должен быть картинкой (Pillow), размер — до `PRODUCT_IMAGE_MAX_MB` (5 МБ).
+  Имя файла заменяется на случайное. Старый файл удаляется после успешного сохранения.
+- Если файл пропал из хранилища — API не падает. В dev Vite проксирует `/media` на Django;
+  в prod `/media/` раздаёт nginx (или подключается S3-хранилище — URL станут абсолютными).
 - Позиции заказа хранят снимок названия и цены на момент покупки.
 
 ## Тесты

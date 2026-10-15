@@ -1,3 +1,5 @@
+import os
+import uuid
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
@@ -7,6 +9,12 @@ from apps.core.models import TimeStampedModel
 from apps.shops.models import Shop
 
 from .search import build_search_text
+
+
+def product_image_upload_to(instance, filename):
+    # Случайное имя: без коллизий и без утечки исходных имён файлов пользователей
+    ext = os.path.splitext(filename)[1].lower()
+    return f"products/{uuid.uuid4().hex}{ext}"
 
 
 class ProductQuerySet(models.QuerySet):
@@ -35,6 +43,7 @@ class Product(TimeStampedModel):
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     quantity = models.PositiveIntegerField("в наличии", default=1)
+    image = models.ImageField("фото", upload_to=product_image_upload_to, blank=True, max_length=255)
     status = models.CharField(
         "статус",
         max_length=20,

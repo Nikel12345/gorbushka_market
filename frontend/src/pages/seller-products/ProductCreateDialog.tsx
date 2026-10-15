@@ -1,7 +1,9 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { ProductImage } from '@/entities/product'
 import { useCurrentShop } from '@/features/seller'
 import { getFieldErrors, sellerApi, type FieldErrors, type ProductCreatePayload } from '@/shared/api'
-import { Button, Dialog, Field, FieldError } from '@/shared/ui'
+import { useObjectUrl } from '@/shared/lib'
+import { Button, Dialog, Field, FieldError, FileButton } from '@/shared/ui'
 import { useProductsOutlet } from './outletContext'
 
 const FORM_ID = 'product-create-form'
@@ -18,6 +20,8 @@ export function ProductCreateDialog() {
   const { closeDialog, onProductCreated } = useProductsOutlet()
 
   const [form, setForm] = useState(initialForm)
+  const [image, setImage] = useState<File | null>(null)
+  const previewUrl = useObjectUrl(image)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
 
@@ -34,6 +38,7 @@ export function ProductCreateDialog() {
       title: form.title.trim(),
       price: normalizeDecimal(form.price),
       description: form.description.trim(),
+      image,
     }
     if (form.quantity.trim() !== '') {
       payload.quantity = Number(form.quantity)
@@ -65,6 +70,31 @@ export function ProductCreateDialog() {
     >
       <form id={FORM_ID} className="ui-form" onSubmit={handleSubmit} noValidate>
         <FieldError messages={errors.non_field_errors} />
+
+        <div className="product-form__photo">
+          <ProductImage src={previewUrl} alt="Превью фото" className="product-form__preview" />
+          <div className="product-form__photo-side">
+            <span className="ui-field__label">Фото</span>
+            <div className="product-form__photo-buttons">
+              <FileButton accept="image/*" onSelect={setImage}>
+                {image ? 'Выбрать другое' : 'Выбрать фото'}
+              </FileButton>
+              {image && (
+                <Button variant="text" onClick={() => setImage(null)}>
+                  Убрать
+                </Button>
+              )}
+            </div>
+            {image ? (
+              <span className="product-form__file-name" title={image.name}>
+                {image.name}
+              </span>
+            ) : (
+              <span className="ui-field__hint">JPG, PNG или WebP. Можно добавить позже.</span>
+            )}
+            <FieldError messages={errors.image} />
+          </div>
+        </div>
 
         <Field label="Название" errors={errors.title}>
           <input
