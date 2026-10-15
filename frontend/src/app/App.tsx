@@ -1,7 +1,12 @@
-import { HomePage } from '@/pages/home'
+import { RouterProvider } from 'react-router'
+import { AuthProvider } from '@/features/auth'
+import { router } from './router'
 
-// Корневой компонент. Сюда будут подключаться провайдеры (роутер, store,
-// query-клиент, тема и т.п.) по мере появления.
+// Корневой компонент: глобальные провайдеры и роутер.
 export function App() {
-  return <HomePage />
+  return (
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
+  )
 }

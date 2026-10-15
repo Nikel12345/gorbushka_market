@@ -1,0 +1,81 @@
+.orders__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.orders__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.orders__chevron {
+  display: inline-block;
+  color: var(--color-text-secondary);
+  transition: transform 0.15s;
+}
+
+.orders__toggle[aria-expanded='true'] .orders__chevron {
+  transform: rotate(90deg);
+}
+
+.orders__nowrap {
+  white-space: nowrap;
+}
+
+/* Раскрытый заказ */
+
+.ui-table .orders__details > td {
+  padding-top: 0;
+  background: var(--color-bg);
+}
+
+.orders__details-body {
+  padding: 8px 0 8px 22px;
+}
+
+.orders__meta {
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.orders__items {
+  width: 100%;
+  max-width: 720px;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.orders__items th,
+.orders__items td {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+}
+
+.orders__items th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.orders__items .ui-table__num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.orders__items tfoot td {
+  border-bottom: 0;
+  font-weight: 500;
+}
