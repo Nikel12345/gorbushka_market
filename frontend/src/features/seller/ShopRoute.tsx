@@ -5,9 +5,9 @@ import { useSeller } from './useSeller'
 /** Пускает в /seller/shops/:shopId/* только если магазин принадлежит продавцу. */
 export function ShopRoute() {
   const { shopId } = useParams()
-  const { profile } = useSeller()
+  const { shops } = useSeller()
 
-  if (!profile.shops.some((shop) => String(shop.id) === shopId)) {
+  if (!shops.some((shop) => String(shop.id) === shopId)) {
     return (
       <Card>
         <EmptyState
@@ -19,5 +19,6 @@ export function ShopRoute() {
     )
   }
 
-  return <Outlet />
+  // key: другой магазин — страницы монтируются заново, без мелькания данных прошлого магазина
+  return <Outlet key={shopId} />
 }

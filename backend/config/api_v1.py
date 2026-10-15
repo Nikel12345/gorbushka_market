@@ -10,6 +10,7 @@ urlpatterns = [
     path("auth/", include("apps.users.urls")),
     path("catalog/", include("apps.catalog.urls")),
     path("shops/", include("apps.shops.urls")),
+    path("delivery/", include("apps.delivery.urls")),
     # Страница текущего пользователя (покупателя). Как и seller/ — маршруты
     # собираются из доменных приложений.
     path(

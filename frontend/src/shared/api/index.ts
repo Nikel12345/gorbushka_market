@@ -18,7 +18,7 @@ export { sellerApi } from './seller'
 export type {
   ShopBrief,
   Shop,
-  ShopCreatePayload,
+  ShopPayload,
   SellerProfile,
   ProductStatus,
   Product,
@@ -32,3 +32,5 @@ export type {
 } from './seller'
 export { cartApi } from './cart'
 export type { Cart, CartLine } from './cart'
+export { deliveryApi } from './delivery'
+export type { DeliveryMethod, DeliveryKind } from './delivery'

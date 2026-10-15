@@ -1,5 +1,6 @@
 import type { User } from './auth'
 import { apiRequest, type ApiRequestInit } from './client'
+import type { DeliveryMethod } from './delivery'
 import { toFormData } from './formData'
 import { productFilterQuery, type ProductFilterParams } from './productFilters'
 import { withQuery } from './query'
@@ -14,15 +15,21 @@ export interface ShopBrief {
   name: string
 }
 
+/** Магазин в кабинете продавца (SellerShopSerializer) */
 export interface Shop extends ShopBrief {
   description: string
+  /** Где забирать товар при самовывозе: павильон, ряд, место. Пусто — самовывоз недоступен. */
+  address: string
+  /** Товаров на продаже */
+  products_count: number
   created_at: string
   updated_at: string
 }
 
-export interface ShopCreatePayload {
+export interface ShopPayload {
   name: string
   description?: string
+  address?: string
 }
 
 export interface SellerProfile extends User {
@@ -35,6 +42,7 @@ export type ProductStatus = 'active' | 'archived'
 
 export interface Product {
   id: number
+  shop: ShopBrief
   title: string
   description: string
   /** Денежные поля приходят строкой ("79990.00") */
@@ -42,6 +50,7 @@ export interface Product {
   quantity: number
   /** URL фото (локально относительный /media/...), null — фото нет, показывается заглушка */
   image: string | null
+  delivery_methods: DeliveryMethod[]
   status: ProductStatus
   status_display: string
   created_at: string
@@ -54,6 +63,8 @@ export interface ProductCreatePayload {
   quantity?: number
   description?: string
   image?: File | null
+  /** Хотя бы один способ; самовывоз — только если у магазина указан адрес */
+  delivery_method_ids: number[]
 }
 
 export interface ProductListParams extends ProductFilterParams {
@@ -101,8 +112,14 @@ const shopPath = (shopId: number) => `/seller/shops/${shopId}`
 export const sellerApi = {
   profile: (options?: RequestOptions) => apiRequest<SellerProfile>('/seller/profile/', options),
 
-  createShop: (payload: ShopCreatePayload) =>
-    apiRequest<Shop>('/seller/shops/', { method: 'POST', json: payload }),
+  listShops: (options?: RequestOptions) => apiRequest<Shop[]>('/seller/shops/', options),
+
+  getShop: (shopId: number, options?: RequestOptions) => apiRequest<Shop>(`${shopPath(shopId)}/`, options),
+
+  createShop: (payload: ShopPayload) => apiRequest<Shop>('/seller/shops/', { method: 'POST', json: payload }),
+
+  updateShop: (shopId: number, payload: Partial<ShopPayload>) =>
+    apiRequest<Shop>(`${shopPath(shopId)}/`, { method: 'PATCH', json: payload }),
 
   listProducts: (shopId: number, { page, ...filters }: ProductListParams = {}, options?: RequestOptions) =>
     apiRequest<Paginated<Product>>(

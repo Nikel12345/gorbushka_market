@@ -10,10 +10,16 @@ from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.delivery.models import DeliveryMethod
 from apps.shops.models import Shop
 from apps.users.models import User
 
 from .models import Product
+
+
+def pickup_id():
+    """Способы доставки засеяны миграцией delivery/0002."""
+    return DeliveryMethod.objects.get(code="pickup").id
 
 
 class SellerProductTests(APITestCase):
@@ -39,7 +45,8 @@ class SellerProductTests(APITestCase):
     def test_create_product(self):
         response = self.client.post(
             self.list_url(),
-            {"title": "iPhone 15", "description": "128 ГБ", "price": "79990.00", "quantity": 3},
+            {"title": "iPhone 15", "description": "128 ГБ", "price": "79990.00", "quantity": 3,
+             "delivery_method_ids": [pickup_id()]},
             format="json",
         )
 
@@ -54,7 +61,8 @@ class SellerProductTests(APITestCase):
     def test_create_ignores_status_and_shop_from_request(self):
         response = self.client.post(
             self.list_url(),
-            {"title": "X", "price": "10", "status": "archived", "shop": self.foreign_shop.id},
+            {"title": "X", "price": "10", "status": "archived", "shop": self.foreign_shop.id,
+             "delivery_method_ids": [pickup_id()]},
             format="json",
         )
 
@@ -512,7 +520,7 @@ class ProductImageTests(APITestCase):
     def test_create_product_with_image(self):
         response = self.client.post(
             reverse("seller-product-list", args=[self.shop.id]),
-            {"title": "С фото", "price": "100", "image": make_image()},
+            {"title": "С фото", "price": "100", "image": make_image(), "delivery_method_ids": [pickup_id()]},
             format="multipart",
         )
 
@@ -623,3 +631,204 @@ class ShopPageCursorTests(APITestCase):
                         break
                 self.assertEqual(ids, expected)
                 self.assertEqual(pages, 3)
+
+
+class ProductDeliveryMethodsTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.pickup = DeliveryMethod.objects.get(code="pickup")
+        self.courier = DeliveryMethod.objects.get(code="market_courier")
+        self.client.force_login(self.owner)
+        self.list_url = reverse("seller-product-list", args=[self.shop.id])
+
+    def create(self, method_ids, fmt="json", **extra):
+        payload = {"title": "iPhone 15", "price": "100", **extra}
+        if method_ids is not None:
+            payload["delivery_method_ids"] = method_ids
+        return self.client.post(self.list_url, payload, format=fmt)
+
+    def detail_url(self, product):
+        return reverse("seller-product-detail", args=[self.shop.id, product.id])
+
+    def method_codes(self, data):
+        return [m["code"] for m in data["delivery_methods"]]
+
+    def test_create_with_methods(self):
+        response = self.create([self.pickup.id, self.courier.id])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(self.method_codes(response.data), ["pickup", "market_courier"])
+        self.assertNotIn("delivery_method_ids", response.data)
+        product = Product.objects.get(pk=response.data["id"])
+        self.assertEqual(set(product.delivery_methods.all()), {self.pickup, self.courier})
+        # полное описание способа, как в справочнике
+        self.assertEqual(response.data["delivery_methods"][1]["price"], "50.00")
+
+    def test_methods_are_required_on_create(self):
+        for method_ids in [None, []]:
+            with self.subTest(method_ids=method_ids):
+                response = self.create(method_ids)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("delivery_method_ids", response.data)
+        self.assertFalse(Product.objects.exists())
+
+    def test_unknown_or_inactive_method_is_rejected(self):
+        off = DeliveryMethod.objects.create(code="off", name="Выключен", kind="courier", provider="shop", is_active=False)
+
+        for method_ids in [[999], [self.pickup.id, off.id], ["abc"]]:
+            with self.subTest(method_ids=method_ids):
+                response = self.create(method_ids)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("delivery_method_ids", response.data)
+        self.assertFalse(Product.objects.exists())
+
+    def test_duplicates_are_ignored(self):
+        response = self.create([self.pickup.id, self.pickup.id])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self.method_codes(response.data), ["pickup"])
+
+    def test_multipart_create_with_repeated_field(self):
+        response = self.create([self.pickup.id, self.courier.id], fmt="multipart", image=make_image())
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(self.method_codes(response.data), ["pickup", "market_courier"])
+
+    def test_patch_replaces_methods(self):
+        product = Product.objects.get(pk=self.create([self.pickup.id]).data["id"])
+
+        response = self.client.patch(self.detail_url(product), {"delivery_method_ids": [self.courier.id]}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.method_codes(response.data), ["market_courier"])
+        self.assertEqual(list(product.delivery_methods.all()), [self.courier])
+
+    def test_patch_without_methods_keeps_them_and_empty_is_rejected(self):
+        product = Product.objects.get(pk=self.create([self.pickup.id, self.courier.id]).data["id"])
+
+        self.client.patch(self.detail_url(product), {"price": "200"}, format="json")
+        self.assertEqual(product.delivery_methods.count(), 2)
+
+        response = self.client.patch(self.detail_url(product), {"delivery_method_ids": []}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(product.delivery_methods.count(), 2)
+
+    def test_public_detail_shows_only_active_methods(self):
+        product = Product.objects.get(pk=self.create([self.pickup.id, self.courier.id]).data["id"])
+        self.courier.is_active = False
+        self.courier.save()
+
+        response = self.client.get(reverse("product-detail", args=[product.id]))
+
+        self.assertEqual(self.method_codes(response.data), ["pickup"])
+
+    def test_feed_filter_by_delivery_method(self):
+        both = Product.objects.get(pk=self.create([self.pickup.id, self.courier.id]).data["id"])
+        Product.objects.get(pk=self.create([self.pickup.id]).data["id"])
+
+        response = self.client.get(reverse("product-feed"), {"delivery_method": self.courier.id})
+
+        self.assertEqual([p["id"] for p in response.data["results"]], [both.id])
+
+    def test_seller_list_query_count_does_not_grow(self):
+        def count_queries():
+            from django.db import connection
+            from django.test.utils import CaptureQueriesContext
+
+            with CaptureQueriesContext(connection) as ctx:
+                self.client.get(self.list_url)
+            return len(ctx.captured_queries)
+
+        self.create([self.pickup.id])
+        one = count_queries()
+        for _ in range(5):
+            self.create([self.pickup.id, self.courier.id])
+
+        self.assertEqual(count_queries(), one)
+
+
+class SellerAllProductsTests(APITestCase):
+    url = reverse("seller-all-products")
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.other = User.objects.create_user(email="other@example.com", password="x")
+        self.shop_a = Shop.objects.create(owner=self.owner, name="Павильон A", address="1 этаж")
+        self.shop_b = Shop.objects.create(owner=self.owner, name="Павильон B", address="2 этаж")
+        self.foreign = Shop.objects.create(owner=self.other, name="Чужой")
+        self.client.force_login(self.owner)
+
+    def make(self, shop, title="Товар", **kwargs):
+        product = Product.objects.create(shop=shop, title=title, price=Decimal("100"), **kwargs)
+        product.delivery_methods.set([DeliveryMethod.objects.get(code="pickup")])
+        return product
+
+    def test_requires_authentication(self):
+        self.client.logout()
+
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_returns_all_own_products_grouped_by_shop(self):
+        b_old = self.make(self.shop_b, "B старый")
+        a_old = self.make(self.shop_a, "A старый")
+        b_new = self.make(self.shop_b, "B новый")
+        a_new = self.make(self.shop_a, "A новый")
+        self.make(self.foreign, "Чужой")
+        self.make(self.shop_a, "Удалённый", status=Product.Status.ARCHIVED)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # без пагинации: просто список
+        self.assertIsInstance(response.data, list)
+        # магазины подряд в порядке /seller/shops/, внутри — новые сверху
+        self.assertEqual([p["id"] for p in response.data], [a_new.id, a_old.id, b_new.id, b_old.id])
+        self.assertEqual(response.data[0]["shop"], {"id": self.shop_a.id, "name": "Павильон A"})
+        self.assertEqual(response.data[2]["shop"], {"id": self.shop_b.id, "name": "Павильон B"})
+        # порядок магазинов совпадает со списком магазинов продавца
+        shop_order = [s["id"] for s in self.client.get(reverse("seller-shop-list")).data]
+        self.assertEqual(list(dict.fromkeys(p["shop"]["id"] for p in response.data)), shop_order)
+
+    def test_user_without_shops_gets_empty_list(self):
+        self.make(self.foreign)
+        self.client.force_login(User.objects.create_user(email="buyer@example.com", password="x"))
+
+        self.assertEqual(self.client.get(self.url).data, [])
+
+    def test_supports_shared_product_filters(self):
+        match = self.make(self.shop_b, "Чехол iPhone")
+        self.make(self.shop_a, "Чехол Samsung")
+        self.make(self.shop_b, "Зарядка")
+
+        response = self.client.get(self.url, {"q": "чехол", "shop": self.shop_b.id})
+
+        self.assertEqual([p["id"] for p in response.data], [match.id])
+
+    def test_foreign_shop_filter_returns_nothing(self):
+        self.make(self.foreign)
+
+        self.assertEqual(self.client.get(self.url, {"shop": self.foreign.id}).data, [])
+
+    def test_query_count_does_not_grow(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as ctx:
+                self.client.get(self.url)
+            return len(ctx.captured_queries)
+
+        self.make(self.shop_a)
+        baseline = count_queries()
+        for i in range(6):
+            self.make(self.shop_a if i % 2 else self.shop_b)
+
+        self.assertEqual(count_queries(), baseline)
+
+    def test_per_shop_list_also_contains_shop(self):
+        self.make(self.shop_a)
+
+        response = self.client.get(reverse("seller-product-list", args=[self.shop_a.id]))
+
+        self.assertEqual(response.data["results"][0]["shop"], {"id": self.shop_a.id, "name": "Павильон A"})

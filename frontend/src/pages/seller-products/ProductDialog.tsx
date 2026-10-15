@@ -82,6 +82,14 @@ export function ProductDialog() {
           <dl className="ui-props">
             <dt>В наличии</dt>
             <dd>{p.quantity > 0 ? `${p.quantity} шт.` : <Chip tone="warning">Нет в наличии</Chip>}</dd>
+            <dt>Получение</dt>
+            <dd>
+              {p.delivery_methods.length > 0 ? (
+                p.delivery_methods.map((method) => method.name).join(', ')
+              ) : (
+                <span className="ui-muted">не указано</span>
+              )}
+            </dd>
             <dt>Статус</dt>
             <dd>
               <Chip tone="success">{p.status_display}</Chip>

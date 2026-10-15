@@ -4,6 +4,7 @@ import { useCurrentShop } from '@/features/seller'
 import { getFieldErrors, sellerApi, type FieldErrors, type ProductCreatePayload } from '@/shared/api'
 import { useObjectUrl } from '@/shared/lib'
 import { Button, Dialog, Field, FieldError, FileButton } from '@/shared/ui'
+import { DeliveryMethodsField } from './DeliveryMethodsField'
 import { useProductsOutlet } from './outletContext'
 
 const FORM_ID = 'product-create-form'
@@ -21,6 +22,7 @@ export function ProductCreateDialog() {
 
   const [form, setForm] = useState(initialForm)
   const [image, setImage] = useState<File | null>(null)
+  const [deliveryIds, setDeliveryIds] = useState<number[]>([])
   const previewUrl = useObjectUrl(image)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
@@ -31,6 +33,10 @@ export function ProductCreateDialog() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    if (deliveryIds.length === 0) {
+      setErrors({ delivery_method_ids: ['Выберите хотя бы один способ получения.'] })
+      return
+    }
     setSubmitting(true)
     setErrors({})
 
@@ -39,6 +45,7 @@ export function ProductCreateDialog() {
       price: normalizeDecimal(form.price),
       description: form.description.trim(),
       image,
+      delivery_method_ids: deliveryIds,
     }
     if (form.quantity.trim() !== '') {
       payload.quantity = Number(form.quantity)
@@ -132,6 +139,16 @@ export function ProductCreateDialog() {
             />
           </Field>
         </div>
+
+        <DeliveryMethodsField
+          shop={shop}
+          value={deliveryIds}
+          onChange={(ids) => {
+            setDeliveryIds(ids)
+            setErrors((prev) => ({ ...prev, delivery_method_ids: [] }))
+          }}
+          errors={errors.delivery_method_ids}
+        />
 
         <Field label="Описание" errors={errors.description}>
           <textarea

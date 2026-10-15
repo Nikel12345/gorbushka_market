@@ -25,7 +25,7 @@ class ShopPublicSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shop
-        fields = ["id", "name", "description", "products_count", "created_at"]
+        fields = ["id", "name", "description", "address", "products_count", "created_at"]
         read_only_fields = fields
 
     def get_products_count(self, shop) -> int:

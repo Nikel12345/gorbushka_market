@@ -43,6 +43,8 @@ class Shop(TimeStampedModel):
     )
     name = models.CharField("название", max_length=255)
     description = models.TextField("описание", blank=True)
+    # Где покупатель забирает товар при самовывозе: павильон, ряд, место
+    address = models.CharField("адрес", max_length=255, blank=True)
 
     objects = ShopQuerySet.as_manager()
 

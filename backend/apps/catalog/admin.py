@@ -9,3 +9,4 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("title", "shop__name")
     raw_id_fields = ("shop",)
+    filter_horizontal = ("delivery_methods",)

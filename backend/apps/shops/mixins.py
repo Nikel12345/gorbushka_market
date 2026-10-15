@@ -20,3 +20,7 @@ class SellerShopMixin:
                 pk=self.kwargs[self.shop_url_kwarg],
             )
         return self._shop
+
+    def get_serializer_context(self):
+        # Сериализаторам вложенных view нужен магазин (например, для проверки доступных ему способов доставки)
+        return {**super().get_serializer_context(), "shop": self.get_shop()}

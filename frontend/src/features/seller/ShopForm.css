@@ -1,0 +1,10 @@
+.shop-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shop-form__saved {
+  font-size: 13px;
+  color: #2e7d32;
+}

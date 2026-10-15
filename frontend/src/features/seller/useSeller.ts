@@ -1,6 +1,6 @@
 import { useContext } from 'react'
 import { useParams } from 'react-router'
-import type { ShopBrief } from '@/shared/api'
+import type { Shop } from '@/shared/api'
 import { SellerContext } from './SellerContext'
 
 export function useSeller() {
@@ -12,10 +12,10 @@ export function useSeller() {
 }
 
 /** Магазин из URL (/seller/shops/:shopId/...). Доступен только внутри ShopRoute. */
-export function useCurrentShop(): ShopBrief {
+export function useCurrentShop(): Shop {
   const { shopId } = useParams()
-  const { profile } = useSeller()
-  const shop = profile.shops.find((item) => String(item.id) === shopId)
+  const { shops } = useSeller()
+  const shop = shops.find((item) => String(item.id) === shopId)
   if (!shop) {
     throw new Error('useCurrentShop must be used within ShopRoute')
   }

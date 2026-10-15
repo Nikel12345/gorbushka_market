@@ -6,6 +6,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 from apps.core.models import TimeStampedModel
+from apps.delivery.models import DeliveryMethod
 from apps.shops.models import Shop
 
 from .search import build_search_text
@@ -20,6 +21,10 @@ def product_image_upload_to(instance, filename):
 class ProductQuerySet(models.QuerySet):
     def on_sale(self):
         return self.filter(status=Product.Status.ACTIVE)
+
+    def with_seller_details(self):
+        """Всё, что выводит кабинет продавца по товару, без N+1."""
+        return self.select_related("shop").prefetch_related("delivery_methods")
 
 
 class Product(TimeStampedModel):
@@ -44,6 +49,14 @@ class Product(TimeStampedModel):
     )
     quantity = models.PositiveIntegerField("в наличии", default=1)
     image = models.ImageField("фото", upload_to=product_image_upload_to, blank=True, max_length=255)
+    # Какими способами можно получить товар. Задаёт продавец при создании/редактировании,
+    # из DeliveryMethod.objects.available_for_shop(shop).
+    delivery_methods = models.ManyToManyField(
+        DeliveryMethod,
+        related_name="products",
+        verbose_name="способы доставки",
+        blank=True,
+    )
     status = models.CharField(
         "статус",
         max_length=20,

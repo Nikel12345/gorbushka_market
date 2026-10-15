@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { useCurrentShop } from '@/features/seller'
-import { ApiError, getErrorMessage, sellerApi, type Order, type OrderStatus } from '@/shared/api'
+import { useSeller } from '@/features/seller'
+import { ApiError, getErrorMessage, sellerApi, type Order, type OrderStatus, type Shop } from '@/shared/api'
 import {
   formatDateTime,
   formatPersonName,
@@ -53,9 +53,41 @@ function countItems(order: Order): number {
   return order.items.reduce((sum, item) => sum + item.quantity, 0)
 }
 
-/** История заказов магазина, новые сверху. */
+/**
+ * /seller/orders — общий раздел заказов. API отдаёт заказы по одному магазину,
+ * поэтому магазин выбирается на странице (?shop=), по умолчанию — текущий.
+ */
 export function SellerOrdersPage() {
-  const shop = useCurrentShop()
+  const { shops, activeShopId } = useSeller()
+  const [searchParams] = useSearchParams()
+  const shop =
+    shops.find((item) => String(item.id) === searchParams.get('shop')) ??
+    shops.find((item) => item.id === activeShopId)
+
+  if (!shop) {
+    return (
+      <>
+        <PageHeader title="История заказов" />
+        <Card>
+          <EmptyState
+            title="Магазинов пока нет"
+            text="Заказы появятся, когда покупатели начнут покупать товары вашего магазина."
+            action={
+              <LinkButton variant="primary" to="/seller/shops/new">
+                Создать магазин
+              </LinkButton>
+            }
+          />
+        </Card>
+      </>
+    )
+  }
+
+  return <ShopOrders shop={shop} />
+}
+
+function ShopOrders({ shop }: { shop: Shop }) {
+  const { shops } = useSeller()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = parsePage(searchParams.get('page'))
   const status = parseStatus(searchParams.get('status'))
@@ -70,6 +102,10 @@ export function SellerOrdersPage() {
 
   function changeStatus(next: StatusFilter) {
     setSearchParams((prev) => updateSearchParams(prev, { status: next === 'all' ? null : next, page: null }))
+  }
+
+  function changeShop(shopId: string) {
+    setSearchParams((prev) => updateSearchParams(prev, { shop: shopId, page: null }))
   }
 
   function goToPage(next: number) {
@@ -171,7 +207,24 @@ export function SellerOrdersPage() {
 
   return (
     <>
-      <PageHeader title="История заказов" subtitle={shop.name} />
+      <PageHeader
+        title="История заказов"
+        subtitle={shops.length > 1 ? undefined : shop.name}
+        actions={
+          shops.length > 1 && (
+            <label className="orders__shop">
+              <span className="ui-muted">Магазин</span>
+              <select className="ui-input" value={shop.id} onChange={(event) => changeShop(event.target.value)}>
+                {shops.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )
+        }
+      />
 
       <Card flush>
         {orders.status === 'loading' && orders.data && <LinearProgress />}

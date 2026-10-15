@@ -30,31 +30,6 @@
   color: var(--color-text-secondary);
 }
 
-.seller-bar__shop,
-.seller-bar__shop-name {
-  max-width: 260px;
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.seller-bar__shop {
-  height: 30px;
-  padding: 0 8px;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius);
-  background: #f8f8f8;
-  color: var(--color-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.seller-bar__shop-name {
-  font-weight: 500;
-}
-
 .seller-bar__spacer {
   flex: 1;
 }
@@ -85,20 +60,41 @@
   order: 2;
   flex-shrink: 0;
   width: var(--sidebar-width);
-  padding: 12px 0;
+  padding: 8px 0 16px;
   background: #fbfbfb;
   border-left: 1px solid var(--color-divider);
+}
+
+/* Кнопка «Меню» — только на телефоне */
+.seller-nav__toggle {
+  display: none;
+}
+
+.seller-nav__heading {
+  margin: 8px 0 2px;
+  padding: 0 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
 }
 
 .seller-nav__link {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   height: 36px;
   padding: 0 20px;
   font-size: 13px;
   color: var(--color-text);
   text-decoration: none;
+}
+
+.seller-nav__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .seller-nav__icon {
@@ -108,7 +104,8 @@
   fill: #8a8a8a;
 }
 
-.seller-nav__link:hover {
+.seller-nav__link:hover,
+.seller-nav__sub-link:hover {
   background: #eeeeee;
 }
 
@@ -121,6 +118,70 @@
 
 .seller-nav__link--active .seller-nav__icon {
   fill: #fff;
+}
+
+/* Название магазина может быть длинным — переносим, а не обрезаем */
+.seller-nav__shop .seller-nav__link {
+  height: auto;
+  min-height: 36px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.seller-nav__shop .seller-nav__text {
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Магазин, внутри которого сейчас находимся */
+.seller-nav__link--current {
+  font-weight: 500;
+}
+
+.seller-nav__link--current .seller-nav__icon {
+  fill: var(--color-brand);
+}
+
+/* Разделы магазина: со сдвигом вправо и маркером пункта */
+.seller-nav__sub {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.seller-nav__sub-link {
+  position: relative;
+  display: block;
+  padding: 5px 20px 5px 54px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.seller-nav__sub-link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 40px;
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.seller-nav__sub-link--active,
+.seller-nav__sub-link--active:hover {
+  background: var(--color-brand);
+  color: #fff;
+  font-weight: 500;
+}
+
+.seller-nav__divider {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--color-divider);
 }
 
 .seller-content {
@@ -142,41 +203,43 @@
     padding: 0 10px 0 12px;
   }
 
-  .seller-bar__shop-name {
-    display: none;
-  }
-
-  .seller-bar__shop {
-    flex-shrink: 1;
-    min-width: 0;
-    max-width: 150px;
-  }
-
   .seller-body {
     flex-direction: column;
   }
 
+  /* Меню сверху, свёрнуто в кнопку */
   .seller-nav {
     order: 0;
-    display: flex;
     width: auto;
     padding: 0;
-    overflow-x: auto;
     background: var(--color-surface);
     border-left: 0;
     border-bottom: 1px solid var(--color-divider);
   }
 
-  .seller-nav__link {
-    gap: 8px;
+  .seller-nav__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
     height: 44px;
-    padding: 0 14px;
-    white-space: nowrap;
+    padding: 0 16px;
+    border: 0;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
   }
 
-  .seller-nav__icon {
-    width: 18px;
-    height: 18px;
+  .seller-nav__content {
+    display: none;
+    padding-bottom: 8px;
+  }
+
+  .seller-nav--open .seller-nav__content {
+    display: block;
   }
 
   .seller-content {

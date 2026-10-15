@@ -93,6 +93,80 @@
   font-weight: 500;
 }
 
+/* --- Способы получения в форме товара --- */
+
+.delivery-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.delivery-field legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.delivery-field__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.delivery-field__option:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.delivery-field__option--disabled {
+  cursor: default;
+  background: #fafafa;
+}
+
+.delivery-field__option input {
+  margin: 3px 0 0;
+}
+
+.delivery-field__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.delivery-field__name {
+  font-size: 14px;
+}
+
+.delivery-field__option--disabled .delivery-field__name {
+  color: var(--color-text-secondary);
+}
+
+.delivery-field__terms {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.delivery-field[aria-invalid='true'] .delivery-field__option {
+  border-color: var(--color-danger);
+}
+
+.delivery-field__error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
 @media (max-width: 600px) {
   .product-card {
     grid-template-columns: 1fr;

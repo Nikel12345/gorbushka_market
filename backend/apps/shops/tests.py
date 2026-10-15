@@ -163,3 +163,93 @@ class ShopPublicTests(APITestCase):
         response = self.client.get(reverse("product-feed"), {"shop": self.shop.id})
 
         self.assertEqual([p["id"] for p in response.data["results"]], [product.id])
+
+
+class ShopAddressTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.client.force_login(self.owner)
+
+    def test_create_with_address(self):
+        response = self.client.post(
+            reverse("seller-shop-list"),
+            {"name": "Павильон 12", "address": "  Горбушкин двор, 2 этаж, B-12  "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["address"], "Горбушкин двор, 2 этаж, B-12")
+        self.assertEqual(Shop.objects.get(pk=response.data["id"]).address, "Горбушкин двор, 2 этаж, B-12")
+
+    def test_address_is_optional(self):
+        response = self.client.post(reverse("seller-shop-list"), {"name": "Без адреса"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["address"], "")
+
+    def test_patch_address(self):
+        shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+
+        response = self.client.patch(
+            reverse("seller-shop-detail", args=[shop.id]), {"address": "1 этаж, A-3"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        shop.refresh_from_db()
+        self.assertEqual(shop.address, "1 этаж, A-3")
+        self.assertEqual(shop.name, "Павильон 12")
+
+    def test_address_too_long(self):
+        response = self.client.post(reverse("seller-shop-list"), {"name": "X", "address": "a" * 256}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("address", response.data)
+
+    def test_public_page_shows_address(self):
+        shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
+        self.client.logout()
+
+        response = self.client.get(reverse("shop-detail", args=[shop.id]))
+
+        self.assertEqual(response.data["address"], "2 этаж, B-12")
+
+
+class SellerShopsPageTests(APITestCase):
+    """Список магазинов продавца и карточка магазина в кабинете."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.other = User.objects.create_user(email="other@example.com", password="x")
+        self.shop_a = Shop.objects.create(owner=self.owner, name="Павильон A", address="1 этаж, A-1")
+        self.shop_b = Shop.objects.create(owner=self.owner, name="Павильон B", address="2 этаж, B-7")
+        Shop.objects.create(owner=self.other, name="Чужой")
+
+    def test_list_requires_authentication(self):
+        self.assertEqual(self.client.get(reverse("seller-shop-list")).status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_returns_own_shops_with_name_and_address(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get(reverse("seller-shop-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [(s["id"], s["name"], s["address"]) for s in response.data],
+            [(self.shop_a.id, "Павильон A", "1 этаж, A-1"), (self.shop_b.id, "Павильон B", "2 этаж, B-7")],
+        )
+
+    def test_shop_card(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get(reverse("seller-shop-detail", args=[self.shop_b.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], "Павильон B")
+        self.assertEqual(response.data["address"], "2 этаж, B-7")
+
+    def test_shop_card_of_another_seller_is_404(self):
+        self.client.force_login(self.other)
+
+        response = self.client.get(reverse("seller-shop-detail", args=[self.shop_a.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

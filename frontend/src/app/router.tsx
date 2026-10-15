@@ -13,6 +13,8 @@ import { SellerHomePage } from '@/pages/seller-home'
 import { SellerOrdersPage } from '@/pages/seller-orders'
 import { ProductCreateDialog, ProductDialog, SellerProductsPage } from '@/pages/seller-products'
 import { SellerProfilePage } from '@/pages/seller-profile'
+import { ShopCreatePage } from '@/pages/seller-shop-new'
+import { ShopProfilePage } from '@/pages/seller-shop-profile'
 import { AppLayout } from './layout/AppLayout'
 import { SellerLayout } from './layout/SellerLayout'
 
@@ -84,6 +86,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <SellerHomePage /> },
       { path: 'profile', element: <SellerProfilePage /> },
+      // Заказы — общий раздел, магазин выбирается на странице
+      { path: 'orders', element: <SellerOrdersPage /> },
+      { path: 'shops/new', element: <ShopCreatePage /> },
       {
         path: 'shops/:shopId',
         element: <ShopRoute />,
@@ -98,7 +103,7 @@ export const router = createBrowserRouter([
               { path: ':productId', element: <ProductDialog /> },
             ],
           },
-          { path: 'orders', element: <SellerOrdersPage /> },
+          { path: 'profile', element: <ShopProfilePage /> },
         ],
       },
     ],

@@ -43,6 +43,7 @@ backend/
     orders/          заказы и позиции; оформление — orders.services.create_order
     wallet/          баланс пользователя и журнал операций; изменение — wallet.services.change_balance
     cart/            корзина пользователя
+    delivery/        способы доставки, интервалы и слоты; доступность для магазина — available_for_shop
   requirements/      base / dev / prod
 
 frontend/src/
@@ -107,7 +108,7 @@ frontend/src/
 
 | Метод | URL | Описание |
 |---|---|---|
-| GET | `/api/v1/shops/{shop_id}/` | магазин для покупателя: `id, name, description, products_count, created_at` |
+| GET | `/api/v1/shops/{shop_id}/` | магазин для покупателя: `id, name, description, address, products_count, created_at` |
 
 Товары магазина — та же лента: `GET /api/v1/catalog/products/?shop={shop_id}` (все фильтры и курсор работают).
 
@@ -131,6 +132,27 @@ frontend/src/
 | `date_from`, `date_to` | `2026-02-01` | дата оформления, включительно (время Москвы) |
 | `sort` | `new` (по умолчанию), `old`, `total_desc`, `total_asc` | |
 | `page_size`, `cursor` | | как в ленте товаров |
+
+## Доставка
+
+Справочник способов ведёт маркет в админке. Сейчас (засеяно миграцией):
+
+| code | Способ | Исполнитель | Цена | Срок | Выбор времени |
+|---|---|---|---|---|---|
+| `pickup` | Самовывоз из павильона | продавец (`shop`) | 0 | — | нет |
+| `market_courier` | Курьер маркета | маркет (`market`) | 50 | 1–2 дня | дата + интервал (10–14, 14–18, 18–22) на 7 дней |
+
+| Метод | URL | Описание |
+|---|---|---|
+| GET | `/api/v1/delivery/methods/` | активные способы: `id, code, name, kind, provider, description, price, eta, requires_address, has_slots` |
+| GET | `/api/v1/delivery/methods/{id}/slots/` | доступные `[{date, window_id, start, end}]`; для способов без выбора времени — `[]` |
+
+- `eta` — `{"min_days", "max_days"}` или `null` (у самовывоза срока нет).
+- Слоты начинаются с «сегодня + min_days» (время Москвы); уже начавшиеся сегодня интервалы не предлагаются.
+- `provider` — кто везёт: от него будет зависеть группировка товаров при оформлении
+  (доставка продавца — в пределах магазина, логистика маркета сможет объединять магазины).
+- Какие способы магазин может назначать товарам — `DeliveryMethod.objects.available_for_shop(shop)`
+  (сейчас все активные; сюда же ляжет подключение магазина к логистике маркета).
 
 ## Корзина
 
@@ -186,21 +208,31 @@ frontend/src/
 |---|---|---|
 | GET    | `/api/v1/seller/profile/` | пользователь + `shops: [{id, name}]` |
 | GET    | `/api/v1/seller/shops/` | мои магазины |
-| POST   | `/api/v1/seller/shops/` | `{name, description?}` — создать магазин |
+| POST   | `/api/v1/seller/shops/` | `{name, description?, address?}` — создать магазин |
 | GET    | `/api/v1/seller/shops/{shop_id}/` | магазин: публичные поля + служебные |
-| PATCH  | `/api/v1/seller/shops/{shop_id}/` | `{name?, description?}` |
+| PATCH  | `/api/v1/seller/shops/{shop_id}/` | `{name?, description?, address?}` |
+| GET    | `/api/v1/seller/products/` | **все** товары на продаже во всех магазинах продавца, без пагинации, отсортированы по магазину (как `/seller/shops/`), внутри новые сверху; у каждого `shop: {id, name}`; фильтры `ProductFilter` |
 | GET    | `/api/v1/seller/shops/{shop_id}/products/` | товары на продаже (пагинация, фильтры ленты: `q`, `price_min`, ...) |
-| POST   | `/api/v1/seller/shops/{shop_id}/products/` | `{title, price, quantity?, description?, image?}` — добавить товар |
+| POST   | `/api/v1/seller/shops/{shop_id}/products/` | `{title, price, delivery_method_ids, quantity?, description?, image?}` — добавить товар |
 | GET    | `/api/v1/seller/shops/{shop_id}/products/{id}/` | товар |
-| PATCH  | `/api/v1/seller/shops/{shop_id}/products/{id}/` | `{title?, description?, price?, quantity?, image?}` — JSON или multipart |
+| PATCH  | `/api/v1/seller/shops/{shop_id}/products/{id}/` | `{title?, description?, price?, quantity?, image?, delivery_method_ids?}` — JSON или multipart |
 | DELETE | `/api/v1/seller/shops/{shop_id}/products/{id}/` | снять с продажи (мягкое удаление) |
 | GET    | `/api/v1/seller/shops/{shop_id}/orders/` | история заказов, новые сверху; фильтры `OrderFilter` (как у покупателя) |
 
 - Списки товаров и заказов пагинированы: `{count, next, previous, results}`, `?page=N`, по 20.
 - Денежные поля приходят строками (`"79990.00"`) — без потери точности.
+- `address` — где забрать товар при самовывозе (павильон, ряд, место), до 255 символов; пока необязателен.
 - Товар не удаляется физически (на него ссылаются заказы), а получает статус `archived`.
 - Изменять/удалять товар может только тот, кто управляет магазином (`Shop.objects.managed_by`); иначе `404`.
   `shop` и `status` через PATCH не меняются.
+
+### Способы доставки товара
+
+- Запись: `delivery_method_ids: [1, 2]` — **обязательно при создании** (минимум один), в PATCH — заменяет набор целиком
+  (пустой список нельзя). В multipart — повторяющееся поле `delivery_method_ids`.
+- Принимаются только способы из `available_for_shop` (неактивные / несуществующие — 400).
+- Чтение: `delivery_methods` — полные объекты как в `/delivery/methods/` (в кабинете и на странице товара).
+- Лента фильтруется по способу: `?delivery_method={id}`.
 
 ### Фото товара
 

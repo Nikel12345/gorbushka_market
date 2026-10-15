@@ -1,8 +1,11 @@
+from django.db.models import Prefetch
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
+from apps.delivery.models import DeliveryMethod
 from apps.shops.mixins import SellerShopMixin
+from apps.shops.models import Shop
 
 from . import services
 from .filters import ProductFilter
@@ -21,13 +24,34 @@ class ProductFilterMixin:
 # --- Кабинет продавца ---
 
 
+class SellerAllProductsView(ProductFilterMixin, generics.ListAPIView):
+    """
+    Все товары на продаже во всех магазинах продавца — для страницы товаров,
+    где фронт группирует их по магазинам. Отсортированы по магазину (в порядке
+    /seller/shops/), внутри — новые сверху. Фильтры — общий ProductFilter.
+    Без пагинации: отдаётся весь список.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = SellerProductSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            Product.objects.filter(shop__in=Shop.objects.managed_by(self.request.user))
+            .on_sale()
+            .with_seller_details()
+            .order_by("shop_id", "-created_at", "-id")
+        )
+
+
 class SellerProductListCreateView(ProductFilterMixin, SellerShopMixin, generics.ListCreateAPIView):
     """GET — товары магазина на продаже (те же фильтры, что в ленте), POST — добавить товар."""
 
     serializer_class = SellerProductSerializer
 
     def get_queryset(self):
-        return Product.objects.filter(shop=self.get_shop()).on_sale()
+        return Product.objects.filter(shop=self.get_shop()).on_sale().with_seller_details()
 
     def perform_create(self, serializer):
         serializer.save(shop=self.get_shop())
@@ -44,7 +68,7 @@ class SellerProductDetailView(SellerShopMixin, generics.RetrieveUpdateDestroyAPI
     http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return Product.objects.filter(shop=self.get_shop()).on_sale()
+        return Product.objects.filter(shop=self.get_shop()).on_sale().with_seller_details()
 
     def perform_destroy(self, instance):
         services.archive_product(instance)
@@ -72,4 +96,6 @@ class ProductPublicDetailView(generics.RetrieveAPIView):
     serializer_class = ProductPublicDetailSerializer
 
     def get_queryset(self):
-        return Product.objects.on_sale().select_related("shop")
+        return Product.objects.on_sale().select_related("shop").prefetch_related(
+            Prefetch("delivery_methods", queryset=DeliveryMethod.objects.active())
+        )

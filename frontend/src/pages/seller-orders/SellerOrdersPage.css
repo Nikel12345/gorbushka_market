@@ -79,3 +79,19 @@
   border-bottom: 0;
   font-weight: 500;
 }
+
+/* Выбор магазина в шапке страницы */
+.orders__shop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.orders__shop .ui-input {
+  width: auto;
+  max-width: 260px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
