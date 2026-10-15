@@ -19,6 +19,7 @@ urlpatterns = [
                 path("", include("apps.users.me_urls")),
                 path("", include("apps.wallet.me_urls")),
                 path("", include("apps.orders.me_urls")),
+                path("", include("apps.cart.me_urls")),
             ]
         ),
     ),

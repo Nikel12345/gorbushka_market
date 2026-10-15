@@ -42,6 +42,7 @@ backend/
     catalog/         товары (привязаны к магазину), публичная лента, поиск (catalog/search.py)
     orders/          заказы и позиции; оформление — orders.services.create_order
     wallet/          баланс пользователя и журнал операций; изменение — wallet.services.change_balance
+    cart/            корзина пользователя
   requirements/      base / dev / prod
 
 frontend/src/
@@ -130,6 +131,52 @@ frontend/src/
 | `date_from`, `date_to` | `2026-02-01` | дата оформления, включительно (время Москвы) |
 | `sort` | `new` (по умолчанию), `old`, `total_desc`, `total_asc` | |
 | `page_size`, `cursor` | | как в ленте товаров |
+
+## Корзина
+
+Хранится на бэке, требует авторизации. **Каждый запрос возвращает корзину целиком** — повторный GET не нужен.
+
+| Метод | URL | Описание |
+|---|---|---|
+| GET    | `/api/v1/me/cart/` | содержимое |
+| DELETE | `/api/v1/me/cart/` | очистить |
+| POST   | `/api/v1/me/cart/items/` | `{product_id, quantity=1}` — положить; если товар уже в корзине — количество прибавляется (201) |
+| PATCH  | `/api/v1/me/cart/items/{product_id}/` | `{quantity}` — задать количество; **`0` — убрать товар**; товара нет в корзине — 404 |
+| DELETE | `/api/v1/me/cart/items/{product_id}/` | убрать товар (повторно — не ошибка) |
+
+Ответ:
+```json
+{
+  "items": [
+    {
+      "product": {"id": 7, "title": "iPhone 15", "price": "1000.00", "image": null, "in_stock": true,
+                  "shop": {"id": 1, "name": "Павильон 12"}, "created_at": "..."},
+      "quantity": 2,
+      "total": "2000.00",
+      "is_available": true,
+      "available_quantity": 5
+    }
+  ],
+  "items_count": 2,
+  "total_amount": "2000.00",
+  "has_unavailable": false
+}
+```
+
+- `product` — та же карточка, что в ленте (`ProductCardSerializer`), фронту не нужно догружать товары.
+- Цена в корзине всегда текущая; фиксируется только при оформлении заказа.
+- Увеличить количество можно, только если товар на продаже и его хватает (иначе 400 с `code`:
+  `product_unavailable` / `insufficient_stock`). Уменьшить или убрать — всегда.
+- Если после добавления товар раскупили или сняли с продажи — позиция остаётся с `is_available: false`
+  и `available_quantity` (сколько можно купить сейчас); в `total_amount` она не входит, `has_unavailable: true`.
+- Лимиты: до 999 шт. одной позиции, до 100 разных товаров.
+
+## Ошибки
+
+- Валидация полей — стандарт DRF: `{"field": ["сообщение"], "non_field_errors": [...]}` (400).
+- Нарушение бизнес-правила — `{"detail": "Недостаточно товара…", "code": "insufficient_stock"}` (400; `404`, если
+  объект не найден). `code` стабилен — по нему фронт может ветвиться, `detail` — текст для показа.
+  Источник — `BusinessError` из сервисного слоя (`apps/core/exceptions.py`).
 
 ## Кабинет продавца
 
