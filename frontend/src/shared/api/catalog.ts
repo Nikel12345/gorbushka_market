@@ -1,7 +1,8 @@
 import { apiRequest, type ApiRequestInit } from './client'
+import type { DeliveryMethod } from './delivery'
 import { productFilterQuery, type ProductFilterParams } from './productFilters'
 import { withQuery } from './query'
-import type { ShopBrief } from './seller'
+import type { ProductPhoto, ShopBrief } from './seller'
 import type { CursorPage } from './types'
 
 type RequestOptions = Pick<ApiRequestInit, 'signal'>
@@ -23,6 +24,10 @@ export interface ProductCard {
 export interface ProductDetail extends ProductCard {
   description: string
   quantity: number
+  /** Все фото по порядку, первое — обложка (image) */
+  images: ProductPhoto[]
+  /** Как можно получить товар */
+  delivery_methods: DeliveryMethod[]
 }
 
 /** Сортировки ленты (ProductFeedPagination.sort_options) */

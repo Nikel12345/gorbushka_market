@@ -1,1 +1,1 @@
-export { formatDeliveryTerms } from './format'
+export { formatDeliveryPrice, formatDeliveryTerms, formatSlot, formatSlotDay } from './format'

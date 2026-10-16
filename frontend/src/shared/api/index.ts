@@ -14,7 +14,7 @@ export { fetchHealth } from './health'
 export type { HealthResponse } from './health'
 export { authApi } from './auth'
 export type { User, LoginPayload, RegisterPayload } from './auth'
-export { sellerApi } from './seller'
+export { sellerApi, PRODUCT_PHOTOS_MAX } from './seller'
 export type {
   ShopBrief,
   Shop,
@@ -22,9 +22,15 @@ export type {
   SellerProfile,
   ProductStatus,
   Product,
+  ProductPhoto,
   ProductCreatePayload,
+  ProductFieldsPayload,
+  ProductUpdatePayload,
   ProductListParams,
   OrderStatus,
+  OrderStatusOption,
+  OrderBase,
+  OrderPayment,
   OrderBuyer,
   OrderItem,
   Order,
@@ -33,4 +39,31 @@ export type {
 export { cartApi } from './cart'
 export type { Cart, CartLine } from './cart'
 export { deliveryApi } from './delivery'
-export type { DeliveryMethod, DeliveryKind } from './delivery'
+export type { DeliveryMethod, DeliveryMethodBrief, DeliveryKind, DeliverySlot } from './delivery'
+export { checkoutApi } from './checkout'
+export type {
+  CheckoutItem,
+  CheckoutUnavailableItem,
+  CheckoutPreview,
+  PlannedShipment,
+  CheckoutPlan,
+  DeliveryChoice,
+  SlotChoice,
+  CheckoutPayload,
+} from './checkout'
+export { walletApi } from './wallet'
+export type { Balance } from './wallet'
+export { shopsApi } from './shops'
+export type { ShopPublic } from './shops'
+export { promoApi } from './promo'
+export type { Promo } from './promo'
+export { purchasesApi } from './purchases'
+export type {
+  PaymentMethodCode,
+  PaymentStatus,
+  PurchaseSort,
+  ShipmentBrief,
+  Shipment,
+  BuyerOrder,
+  Purchase,
+} from './purchases'

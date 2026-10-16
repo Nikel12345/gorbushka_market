@@ -14,12 +14,14 @@
 
 .product-card__image {
   border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
 }
 
 .product-card__price {
   margin: 0 0 12px;
-  font-size: 26px;
-  font-weight: 400;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
 }
 
 .product-card__description {
@@ -41,57 +43,144 @@
   font-size: 13px;
 }
 
-/* --- Фото в форме добавления и в карточке --- */
+/* --- Фото в карточке (просмотр) --- */
 
-.product-form__photo {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 16px;
-  align-items: center;
-}
-
-.product-form__preview {
-  border: 1px solid var(--color-divider);
-}
-
-.product-form__photo-side {
+.product-card__gallery {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
 }
 
-.product-form__photo-buttons,
-.product-card__photo-actions {
+.product-card__thumbs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
-.product-form__file-name {
-  overflow: hidden;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-secondary);
+.product-card__thumb {
+  width: 52px;
+  padding: 2px;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
 }
 
-.product-card__media {
+.product-card__thumb[aria-pressed='true'] {
+  border-color: var(--color-brand);
+}
+
+/* --- Фото в форме: сетка миниатюр, первое — обложка --- */
+
+.product-photos {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.product-card__uploading {
-  position: absolute;
-  inset: 0;
+.product-photos__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.product-photos__item {
+  position: relative;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: grab;
+}
+
+.product-photos__item--dragging {
+  opacity: 0.4;
+}
+
+.product-photos__image {
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+}
+
+.product-photos__item:first-child .product-photos__image {
+  border-color: var(--color-brand);
+}
+
+.product-photos__cover {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.product-photos__tools {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+}
+
+.product-photos__tools button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.product-photos__tools button:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.product-photos__tools button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.product-photos__tools .product-photos__remove:hover:not(:disabled) {
+  color: var(--color-danger);
+}
+
+/* «Добавить» — пунктирная плитка того же размера, что фото */
+.product-photos__add {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.75);
+  gap: 2px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border: 1.5px dashed var(--color-input-border);
+  background: none;
+  color: var(--color-text-secondary);
   font-size: 13px;
-  font-weight: 500;
 }
+
+.product-photos__add:hover:not(:disabled) {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+.product-photos__plus {
+  font-size: 26px;
+  line-height: 1;
+}
+
 
 /* --- Способы получения в форме товара --- */
 
@@ -114,10 +203,13 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-divider);
+  padding: 10px 12px;
+  border: 1px solid var(--color-input-border);
   border-radius: var(--radius);
   cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
 .delivery-field__option:has(input:checked) {
@@ -127,11 +219,12 @@
 
 .delivery-field__option--disabled {
   cursor: default;
-  background: #fafafa;
+  background: var(--color-surface-muted);
 }
 
 .delivery-field__option input {
   margin: 3px 0 0;
+  accent-color: var(--color-brand);
 }
 
 .delivery-field__text {
@@ -152,6 +245,10 @@
   font-size: 12px;
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
+}
+
+.delivery-field__terms--error {
+  color: var(--color-danger);
 }
 
 .delivery-field[aria-invalid='true'] .delivery-field__option {

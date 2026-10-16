@@ -6,5 +6,5 @@
 
 .shop-form__saved {
   font-size: 13px;
-  color: #2e7d32;
+  color: var(--color-success);
 }

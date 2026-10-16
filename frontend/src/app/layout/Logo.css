@@ -2,7 +2,7 @@
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--color-text);
   text-decoration: none;
 }
@@ -11,25 +11,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 22px;
-  border-radius: 5px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: var(--color-brand);
   color: #fff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .app-logo__text {
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1;
 }
 
 .app-logo__light {
   margin-left: 3px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
+  font-weight: 500;
+  color: var(--color-brand);
 }
 
 @media (max-width: 720px) {

@@ -1,8 +1,8 @@
 import { useId, useRef, useState, type CSSProperties, type ToggleEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '@/features/auth'
-import type { User } from '@/shared/api'
-import { formatPersonName } from '@/shared/lib'
+import { walletApi, type Balance, type User } from '@/shared/api'
+import { formatPersonName, formatPrice } from '@/shared/lib'
 import { Avatar } from '@/shared/ui'
 
 /** Аватар в шапке и меню под ним. Меню — нативный popover: закрывается кликом мимо и Esc. */
@@ -13,6 +13,8 @@ export function UserMenu({ user }: { user: User }) {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<CSSProperties>()
+  /** undefined — ещё не загружен, null — не удалось */
+  const [balance, setBalance] = useState<Balance | null>()
   const name = formatPersonName(user)
 
   // popover живёт в верхнем слое и не знает о кнопке — ставим его под аватар при открытии,
@@ -21,6 +23,8 @@ export function UserMenu({ user }: { user: User }) {
     const rect = buttonRef.current?.getBoundingClientRect()
     if (event.newState !== 'open' || !rect) return
     setPosition({ top: rect.bottom + 6, left: rect.right })
+    // Баланс меняется после покупок и выдачи заказов — перезапрашиваем при каждом открытии
+    walletApi.balance().then(setBalance, () => setBalance(null))
   }
 
   const close = () => menuRef.current?.hidePopover()
@@ -59,6 +63,7 @@ export function UserMenu({ user }: { user: User }) {
             <span className="user-menu__email">{user.email}</span>
           </div>
         </div>
+        <BalanceBlock balance={balance} />
         <Link to="/profile" className="user-menu__item" onClick={close}>
           Профиль
         </Link>
@@ -70,5 +75,27 @@ export function UserMenu({ user }: { user: User }) {
         </button>
       </div>
     </>
+  )
+}
+
+/** Баланс для покупок: всего (деньги + бонусы) и бонусы отдельно. Заморожено — выручка продавца. */
+function BalanceBlock({ balance }: { balance: Balance | null | undefined }) {
+  if (balance === null) return <p className="user-menu__balance-error">Не удалось загрузить баланс</p>
+  return (
+    <div className="user-menu__balance" aria-busy={balance === undefined}>
+      <div>
+        <span className="user-menu__balance-label">Всего</span>
+        <span className="user-menu__balance-value">{balance ? formatPrice(balance.spendable) : '…'}</span>
+      </div>
+      <div>
+        <span className="user-menu__balance-label">Бонусы</span>
+        <span className="user-menu__balance-value">{balance ? formatPrice(balance.bonus) : '…'}</span>
+      </div>
+      {balance && Number(balance.frozen) > 0 && (
+        <span className="user-menu__balance-note" title="Выручка за заказы, которые ещё не выданы">
+          Заморожено {formatPrice(balance.frozen)}
+        </span>
+      )}
+    </div>
   )
 }

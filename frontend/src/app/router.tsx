@@ -5,11 +5,12 @@ import { CartPage } from '@/pages/cart'
 import { CheckoutPage } from '@/pages/checkout'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
-import { OrdersPage } from '@/pages/orders'
+import { OrderDetailsPage, OrdersPage } from '@/pages/orders'
 import { ProductPage } from '@/pages/product'
 import { ProfilePage } from '@/pages/profile'
 import { RegisterPage } from '@/pages/register'
 import { SellerHomePage } from '@/pages/seller-home'
+import { ShopPage } from '@/pages/shop'
 import { SellerOrdersPage } from '@/pages/seller-orders'
 import { ProductCreateDialog, ProductDialog, SellerProductsPage } from '@/pages/seller-products'
 import { SellerProfilePage } from '@/pages/seller-profile'
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'products/:productId', element: <ProductPage /> },
+      { path: 'shops/:shopId', element: <ShopPage /> },
       {
         path: 'login',
         element: (
@@ -70,6 +72,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <OrdersPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'orders/:purchaseId',
+        element: (
+          <RequireAuth>
+            <OrderDetailsPage />
           </RequireAuth>
         ),
       },

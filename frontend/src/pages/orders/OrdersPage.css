@@ -1,0 +1,365 @@
+.orders-page__title {
+  margin: 0 0 20px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.orders-page__back {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.orders-page__back:hover {
+  color: var(--color-brand);
+}
+
+/* --- Список --- */
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.orders-list__footer {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.purchase-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 0.15s;
+}
+
+.purchase-card:hover {
+  box-shadow: var(--shadow-2);
+}
+
+.purchase-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.purchase-card__number {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.purchase-card__date {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.purchase-card__total {
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.purchase-card__orders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.purchase-card__order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  font-size: 14px;
+}
+
+.purchase-card__shop {
+  font-weight: 600;
+}
+
+/* Фото позиций магазина */
+.purchase-card__thumbs {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.purchase-card__thumbs li {
+  position: relative;
+}
+
+.purchase-card__thumb {
+  width: 64px;
+  border-radius: var(--radius);
+}
+
+.purchase-card__qty {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(31, 31, 31, 0.75);
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.purchase-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.purchase-card__more {
+  margin-left: auto;
+  color: var(--color-brand);
+}
+
+/* --- Подробности --- */
+
+.order-details__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 20px;
+}
+
+.order-details__head .orders-page__title {
+  margin: 0;
+}
+
+.order-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.order-details__main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.order-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.order-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-section__shop {
+  color: inherit;
+  text-decoration: none;
+}
+
+.order-section__shop:hover {
+  color: var(--color-brand);
+}
+
+.order-section__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.order-section__meta {
+  margin-top: -6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.order-section__text {
+  margin: 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.order-section__total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-divider);
+  font-weight: 600;
+}
+
+.order-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-item {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 12px 0;
+}
+
+.order-item__image {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.order-item + .order-item {
+  border-top: 1px solid var(--color-divider);
+}
+
+.order-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.order-item__title {
+  color: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.order-item__title:hover {
+  color: var(--color-brand);
+}
+
+.order-item__meta {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.order-item__total {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.order-shipments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.order-shipment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  font-size: 14px;
+}
+
+.order-shipment__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-shipment__name {
+  font-weight: 600;
+}
+
+.order-shipment__props,
+.order-payment {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.order-shipment__props dt,
+.order-payment dt {
+  color: var(--color-text-secondary);
+}
+
+.order-shipment__props dd,
+.order-payment dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.order-payment {
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
+}
+
+@media (max-width: 900px) {
+  .order-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .orders-page__title {
+    font-size: 22px;
+  }
+
+  .purchase-card,
+  .order-section {
+    padding: 16px;
+  }
+
+  .order-item {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+
+  .order-item__total {
+    grid-column: 2;
+  }
+}

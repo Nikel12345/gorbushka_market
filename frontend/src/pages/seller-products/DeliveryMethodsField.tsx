@@ -1,13 +1,11 @@
 import { Link } from 'react-router'
-import { formatDeliveryTerms } from '@/entities/delivery'
-import { deliveryApi, getErrorMessage, type Shop } from '@/shared/api'
-import { useRequest } from '@/shared/lib'
+import { getErrorMessage, type Shop } from '@/shared/api'
 import { Button, FieldError } from '@/shared/ui'
-
-const loadMethods = (signal: AbortSignal) => deliveryApi.methods({ signal })
+import { needsShopAddress, type DeliveryMethodsRequest } from './productForm'
 
 interface DeliveryMethodsFieldProps {
   shop: Shop
+  methods: DeliveryMethodsRequest
   value: number[]
   onChange: (ids: number[]) => void
   errors?: string[]
@@ -15,11 +13,10 @@ interface DeliveryMethodsFieldProps {
 
 /**
  * Способы получения товара — чекбоксы из справочника маркета.
- * Самовывоз можно выбрать, только если у магазина указан адрес.
+ * Самовывоз можно выбрать, только если у магазина указан адрес. Если он уже отмечен
+ * (адрес стёрли позже) — снять отметку можно, поставить заново нельзя.
  */
-export function DeliveryMethodsField({ shop, value, onChange, errors }: DeliveryMethodsFieldProps) {
-  const methods = useRequest(loadMethods)
-
+export function DeliveryMethodsField({ shop, methods, value, onChange, errors }: DeliveryMethodsFieldProps) {
   function toggle(id: number, checked: boolean) {
     onChange(checked ? [...value, id] : value.filter((item) => item !== id))
   }
@@ -36,30 +33,35 @@ export function DeliveryMethodsField({ shop, value, onChange, errors }: Delivery
     body = <span className="ui-field__hint">Загружаем способы доставки…</span>
   } else {
     body = methods.data.map((method) => {
-      const needsAddress = method.kind === 'pickup' && !shop.address
+      const checked = value.includes(method.id)
+      const needsAddress = needsShopAddress(method, shop)
+      const blocked = needsAddress && !checked
       return (
         <label
           key={method.id}
-          className={needsAddress ? 'delivery-field__option delivery-field__option--disabled' : 'delivery-field__option'}
+          className={blocked ? 'delivery-field__option delivery-field__option--disabled' : 'delivery-field__option'}
         >
           <input
             type="checkbox"
-            checked={value.includes(method.id)}
-            disabled={needsAddress}
+            checked={checked}
+            disabled={blocked}
             onChange={(event) => toggle(method.id, event.target.checked)}
           />
           <span className="delivery-field__text">
             <span className="delivery-field__name">{method.name}</span>
-            <span className="delivery-field__terms">
+            <span className={needsAddress && checked ? 'delivery-field__terms delivery-field__terms--error' : 'delivery-field__terms'}>
               {needsAddress ? (
                 <>
-                  Сначала укажите адрес в{' '}
+                  {checked ? 'У магазина не указан адрес — снимите отметку или укажите его в ' : 'Сначала укажите адрес в '}
                   <Link to={`/seller/shops/${shop.id}/profile`}>профиле магазина</Link>
                 </>
+              ) : method.provider === 'market' ? (
+                // Цена и срок — условия для покупателя, продавцу важно, кто везёт
+                'Доставляет маркет — вы только передаёте заказ курьеру'
               ) : method.kind === 'pickup' ? (
-                `${formatDeliveryTerms(method)} · ${shop.address}`
+                `Покупатель забирает: ${shop.address}`
               ) : (
-                formatDeliveryTerms(method)
+                method.description
               )}
             </span>
           </span>

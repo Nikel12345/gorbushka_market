@@ -1,0 +1,163 @@
+/* Карточка магазина над каталогом */
+.shop-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 24px;
+  padding: 24px 28px;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.shop-hero__main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.shop-hero__name {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  overflow-wrap: anywhere;
+}
+
+.shop-hero__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.shop-hero__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shop-hero__star {
+  width: 16px;
+  height: 16px;
+  fill: #f5a623;
+}
+
+.shop-hero__address {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.shop-hero__pin {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  fill: var(--color-brand);
+}
+
+.shop-hero__about {
+  max-width: 760px;
+}
+
+.shop-hero__description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shop-hero__description--clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.shop-hero__more {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.shop-hero__subscribe {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--color-brand);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.shop-hero__subscribe svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.shop-hero__subscribe:hover {
+  background: var(--color-brand-light);
+}
+
+.shop-hero__subscribe--on {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.shop-hero__subscribe--on svg {
+  fill: currentColor;
+}
+
+.shop-hero__subscribe--on:hover {
+  background: var(--color-brand-dark);
+}
+
+@media (max-width: 640px) {
+  .shop-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .shop-hero__name {
+    font-size: 22px;
+  }
+
+  .shop-hero__actions {
+    grid-column: 1 / -1;
+  }
+
+  .shop-hero__subscribe {
+    justify-content: center;
+    width: 100%;
+  }
+}

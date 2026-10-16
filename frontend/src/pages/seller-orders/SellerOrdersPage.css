@@ -1,97 +1,317 @@
-.orders__toggle {
-  display: inline-flex;
+.seller-orders__shop {
+  display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 14px;
+}
+
+.seller-orders__shop .ui-input {
+  width: auto;
+  min-width: 200px;
+}
+
+.seller-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 0;
   padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-weight: 500;
-  color: inherit;
-  white-space: nowrap;
-  cursor: pointer;
+  list-style: none;
+  transition: opacity 0.15s;
 }
 
-.orders__toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.seller-orders--dimmed {
+  opacity: 0.6;
 }
 
-.orders__chevron {
-  display: inline-block;
-  color: var(--color-text-secondary);
-  transition: transform 0.15s;
-}
+/* --- Карточка заказа --- */
 
-.orders__toggle[aria-expanded='true'] .orders__chevron {
-  transform: rotate(90deg);
-}
+.seller-order {
+  --order-accent: var(--color-divider);
 
-.orders__nowrap {
-  white-space: nowrap;
-}
-
-/* Раскрытый заказ */
-
-.ui-table .orders__details > td {
-  padding-top: 0;
-  background: var(--color-bg);
-}
-
-.orders__details-body {
-  padding: 8px 0 8px 22px;
-}
-
-.orders__meta {
-  margin-bottom: 16px;
-  font-size: 13px;
-}
-
-.orders__items {
-  width: 100%;
-  max-width: 720px;
-  border-collapse: collapse;
-  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px;
+  border-left: 4px solid var(--order-accent);
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-1);
 }
 
-.orders__items th,
-.orders__items td {
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--color-divider);
-  text-align: left;
+/* Полоса слева — сразу видно, что требует действия */
+.seller-order--new {
+  --order-accent: #1e88e5;
 }
 
-.orders__items th {
+.seller-order--confirmed,
+.seller-order--ready {
+  --order-accent: #f5a623;
+}
+
+.seller-order--completed {
+  --order-accent: var(--color-success);
+}
+
+.seller-order--cancelled {
+  --order-accent: var(--color-input-border);
+}
+
+.seller-order--cancelled .seller-order__items {
+  opacity: 0.6;
+}
+
+.seller-order__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seller-order__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 14px;
+}
+
+.seller-order__number {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Доставка и оплата */
+.seller-order__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seller-order__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+  font-size: 14px;
+}
+
+.seller-order__badge b {
+  font-weight: 600;
+}
+
+.seller-order__badge--pickup {
+  background: #fff4e5;
+}
+
+.seller-order__badge--courier {
+  background: #e8f1fb;
+}
+
+.seller-order__icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: currentColor;
+}
+
+/* Ход заказа: точки, соединённые линией */
+.seller-order__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seller-order__step {
+  position: relative;
+  padding-top: 18px;
   font-size: 12px;
-  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.seller-order__step::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border: 2px solid var(--color-input-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.seller-order__step + .seller-order__step::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--color-divider);
+}
+
+.seller-order__step--done {
+  color: var(--color-text);
+}
+
+.seller-order__step--done::before {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+
+.seller-order__step--done + .seller-order__step--done::after {
+  background: var(--color-brand);
+}
+
+.seller-order__step[aria-current='step'] {
+  font-weight: 600;
+}
+
+.seller-order__step[aria-current='step']::before {
+  box-shadow: 0 0 0 4px var(--color-focus-ring);
+}
+
+/* Товары */
+.seller-order__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seller-order__item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto 110px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.seller-order__item + .seller-order__item {
+  border-top: 1px solid var(--color-divider);
+}
+
+.seller-order__thumb {
+  border-radius: var(--radius-sm);
+}
+
+.seller-order__item-title {
+  overflow-wrap: anywhere;
+}
+
+.seller-order__item-qty {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.seller-order__item-total {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Покупатель, комментарий */
+.seller-order__info {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.seller-order__info dt {
   color: var(--color-text-secondary);
 }
 
-.orders__items .ui-table__num {
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+.seller-order__info dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
-.orders__items tfoot td {
-  border-bottom: 0;
-  font-weight: 500;
+.seller-order__comment {
+  white-space: pre-wrap;
 }
 
-/* Выбор магазина в шапке страницы */
-.orders__shop {
+/* Итог и действия */
+.seller-order__foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  white-space: nowrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
 }
 
-.orders__shop .ui-input {
-  width: auto;
-  max-width: 260px;
-  padding: 4px 8px;
+.seller-order__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seller-order__total {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.seller-order__collect {
   font-size: 13px;
+  font-weight: 600;
+  color: #b26a00;
+}
+
+.seller-order__hint {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.seller-order__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.seller-order__confirm {
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .seller-order {
+    padding: 16px;
+  }
+
+  .seller-order__item {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+  }
+
+  .seller-order__item-qty {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .seller-order__item-total {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .seller-order__actions {
+    width: 100%;
+  }
+
+  .seller-order__actions .ui-button--primary {
+    flex: 1;
+  }
 }

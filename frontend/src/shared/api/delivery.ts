@@ -24,7 +24,24 @@ export interface DeliveryMethod {
   has_slots: boolean
 }
 
+/** Способ в составе заказа (DeliveryMethodBriefSerializer) */
+export type DeliveryMethodBrief = Pick<DeliveryMethod, 'id' | 'code' | 'name' | 'kind' | 'provider'>
+
+/** Время доставки на выбор (DeliverySlotSerializer) */
+export interface DeliverySlot {
+  /** YYYY-MM-DD */
+  date: string
+  window_id: number
+  /** HH:MM */
+  start: string
+  end: string
+}
+
 export const deliveryApi = {
   /** Активные способы: форма товара, фильтр ленты, справка */
   methods: (options?: RequestOptions) => apiRequest<DeliveryMethod[]>('/delivery/methods/', options),
+
+  /** Свободное время для способа с выбором времени (has_slots) */
+  slots: (methodId: number, options?: RequestOptions) =>
+    apiRequest<DeliverySlot[]>(`/delivery/methods/${methodId}/slots/`, options),
 }

@@ -4,3 +4,4 @@ export { formatPrice, formatDate, formatDateTime, formatPersonName, pluralize } 
 export { parsePage, updateSearchParams } from './searchParams'
 export { useObjectUrl } from './useObjectUrl'
 export { useCursorFeed } from './useCursorFeed'
+export { useGridColumns } from './useGridColumns'

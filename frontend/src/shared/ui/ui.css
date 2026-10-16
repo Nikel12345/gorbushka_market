@@ -7,19 +7,20 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 14px;
+  height: 38px;
+  padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--radius);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background-color 0.1s,
-    box-shadow 0.1s;
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .ui-button:disabled {
@@ -28,53 +29,44 @@
 }
 
 .ui-button:focus-visible {
-  outline: 2px solid var(--color-input-focus);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .ui-button--primary {
-  border-color: var(--color-primary);
   background: var(--color-primary);
   color: #fff;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
 }
 
 .ui-button--primary:hover:not(:disabled) {
-  border-color: var(--color-primary-dark);
   background: var(--color-primary-dark);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
 }
 
 .ui-button--default {
-  border-color: var(--color-input-border);
-  background: #f8f8f8;
-  color: #333;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
 }
 
 .ui-button--default:hover:not(:disabled) {
-  border-color: #c6c6c6;
-  background: #f0f0f0;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+  background: #e8e8ea;
 }
 
 .ui-button--text {
+  padding: 0 10px;
   background: transparent;
   color: var(--color-primary);
 }
 
 .ui-button--text:hover:not(:disabled) {
-  background: var(--color-hover);
+  background: var(--color-primary-light);
 }
 
 .ui-button--danger {
-  border-color: var(--color-danger);
   background: var(--color-danger);
   color: #fff;
 }
 
 .ui-button--danger:hover:not(:disabled) {
-  border-color: var(--color-danger-dark);
   background: var(--color-danger-dark);
 }
 
@@ -111,20 +103,31 @@
 
 .ui-input {
   width: 100%;
-  padding: 6px 10px;
+  min-height: 40px;
+  padding: 8px 12px;
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius);
   background: #fff;
-  box-shadow: inset 0 1px 2px #eee;
   color: inherit;
   font: inherit;
   font-size: 14px;
   outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.ui-input:hover:not(:focus) {
+  border-color: #c4c4c4;
 }
 
 .ui-input:focus {
   border-color: var(--color-input-focus);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+select.ui-input {
+  cursor: pointer;
 }
 
 .ui-input[aria-invalid='true'] {
@@ -141,6 +144,7 @@ textarea.ui-input {
 .ui-card {
   position: relative;
   overflow: hidden;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-1);
 }
@@ -153,19 +157,19 @@ textarea.ui-input {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--color-divider);
 }
 
 .ui-card__title {
   flex: 1;
   margin: 0;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .ui-card__body {
-  padding: 16px 20px;
+  padding: 20px 24px;
 }
 
 .ui-card--flush .ui-card__body {
@@ -203,13 +207,14 @@ textarea.ui-input {
 
 .ui-page-header__title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 
 .ui-page-header__subtitle {
-  margin: 2px 0 0;
-  font-size: 13px;
+  margin: 4px 0 0;
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
 
@@ -234,7 +239,7 @@ textarea.ui-input {
   height: 40px;
   padding: 0 12px;
   border-bottom: 1px solid var(--color-divider);
-  background: #fafafa;
+  background: #fafafb;
   font-size: 12px;
   font-weight: 500;
   text-align: left;
@@ -243,7 +248,7 @@ textarea.ui-input {
 }
 
 .ui-table td {
-  padding: 10px 12px;
+  padding: 12px;
   border-bottom: 1px solid var(--color-divider);
   vertical-align: middle;
 }
@@ -254,12 +259,12 @@ textarea.ui-input {
 
 .ui-table th:first-child,
 .ui-table td:first-child {
-  padding-left: 20px;
+  padding-left: 24px;
 }
 
 .ui-table th:last-child,
 .ui-table td:last-child {
-  padding-right: 20px;
+  padding-right: 24px;
 }
 
 .ui-table .ui-table__num {
@@ -274,29 +279,29 @@ textarea.ui-input {
 
 .ui-table__row--clickable:hover,
 .ui-table__row--active {
-  background: #f8f8f8;
+  background: #fafafb;
 }
 
 /* --- Chip --- */
 
 .ui-chip {
   display: inline-block;
-  padding: 0 8px;
-  border-radius: var(--radius);
-  font-size: 11px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 22px;
   white-space: nowrap;
 }
 
 .ui-chip--neutral {
-  background: #eeeeee;
-  color: #666;
+  background: var(--color-surface-muted);
+  color: #5f5f5f;
 }
 
 .ui-chip--info {
   background: #e8f1fa;
-  color: #167ac6;
+  color: #1565c0;
 }
 
 .ui-chip--success {
@@ -310,8 +315,8 @@ textarea.ui-input {
 }
 
 .ui-chip--danger {
-  background: #fde8e7;
-  color: #cc181e;
+  background: var(--color-brand-light);
+  color: var(--color-danger);
 }
 
 /* --- Loader / progress --- */
@@ -334,15 +339,16 @@ textarea.ui-input {
   animation: ui-spin 0.8s linear infinite;
 }
 
-/* Полоса загрузки как у YouTube 2015 — красная, вверху блока */
+/* Полоса загрузки — красная, вверху блока */
 .ui-progress {
   position: absolute;
   top: 0;
   right: 0;
   left: 0;
   z-index: 1;
-  height: 2px;
+  height: 3px;
   overflow: hidden;
+  border-radius: 3px;
 }
 
 .ui-progress::after {
@@ -386,8 +392,8 @@ textarea.ui-input {
 
 .ui-state__title {
   margin: 0 0 6px;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .ui-state--error .ui-state__title {
@@ -395,8 +401,8 @@ textarea.ui-input {
 }
 
 .ui-state__text {
-  margin: 0 0 16px;
-  font-size: 13px;
+  margin: 0 0 20px;
+  font-size: 14px;
   color: var(--color-text-secondary);
 }
 
@@ -426,20 +432,21 @@ textarea.ui-input {
 
 .ui-tabs {
   display: flex;
+  gap: 4px;
   overflow-x: auto;
-  padding: 0 8px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--color-divider);
 }
 
 .ui-tabs__tab {
   flex-shrink: 0;
-  height: 44px;
+  height: 48px;
   padding: 0 12px;
   border: 0;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   background: none;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -450,7 +457,7 @@ textarea.ui-input {
 }
 
 .ui-tabs__tab[aria-selected='true'] {
-  border-bottom-color: var(--color-brand-dark);
+  border-bottom-color: var(--color-brand);
   color: var(--color-text);
 }
 
@@ -462,7 +469,7 @@ textarea.ui-input {
   padding: 0;
   overflow: hidden;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-dialog);
   color: inherit;
 }
@@ -476,7 +483,7 @@ textarea.ui-input {
 }
 
 .ui-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(20, 20, 20, 0.5);
 }
 
 .ui-dialog__inner {
@@ -489,7 +496,7 @@ textarea.ui-input {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid var(--color-divider);
 }
 
@@ -497,14 +504,22 @@ textarea.ui-input {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .ui-dialog__close {
-  padding: 0 4px;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -8px 0 0;
+  padding: 0;
   border: 0;
+  border-radius: 50%;
   background: none;
   font-size: 24px;
   line-height: 1;
@@ -513,16 +528,17 @@ textarea.ui-input {
 }
 
 .ui-dialog__close:hover {
+  background: var(--color-hover);
   color: var(--color-text);
 }
 
 .ui-dialog__close:focus-visible {
-  border-radius: var(--radius);
-  outline: 2px solid var(--color-input-focus);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .ui-dialog__body {
-  padding: 20px;
+  padding: 20px 24px;
   overflow-y: auto;
 }
 
@@ -532,9 +548,9 @@ textarea.ui-input {
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 16px 24px;
   border-top: 1px solid var(--color-divider);
-  background: #fafafa;
+  background: var(--color-surface);
 }
 
 /* --- Мелочи --- */
@@ -542,9 +558,9 @@ textarea.ui-input {
 .ui-props {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 6px 24px;
+  gap: 8px 24px;
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .ui-props dt {
@@ -583,14 +599,14 @@ textarea.ui-input {
 
 .ui-sidebar-layout {
   display: grid;
-  grid-template-columns: 230px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: var(--sidebar-layout-aside, 260px) minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
 }
 
 .ui-sidebar-layout__aside {
   position: sticky;
-  top: calc(var(--sticky-header-height, 0px) + 16px);
+  top: calc(var(--sticky-header-height, 0px) + 20px);
 }
 
 @media (max-width: 900px) {
@@ -606,4 +622,135 @@ textarea.ui-input {
 /* Метка бесконечной прокрутки — занимает место, но не видна */
 .ui-infinite-trigger {
   height: 1px;
+}
+
+/* --- Итог заказа (OrderSummary) --- */
+
+.ui-summary {
+  position: sticky;
+  top: calc(var(--sticky-header-height, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.ui-summary__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.ui-summary__rows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.ui-summary__rows dt {
+  color: var(--color-text-secondary);
+}
+
+.ui-summary__rows dd {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ui-summary__total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.ui-summary__note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.ui-summary__action {
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .ui-summary {
+    position: static;
+  }
+}
+
+/* --- Переключатель (Switch) --- */
+
+.ui-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ui-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--color-input-border);
+  transition: background-color 0.15s;
+}
+
+.ui-switch__track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+
+.ui-switch input:checked + .ui-switch__track {
+  background: var(--color-brand);
+}
+
+.ui-switch input:checked + .ui-switch__track::after {
+  transform: translateX(16px);
+}
+
+.ui-switch input:focus-visible + .ui-switch__track {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.ui-switch--disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.ui-switch--disabled .ui-switch__track {
+  opacity: 0.5;
 }

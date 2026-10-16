@@ -4,7 +4,7 @@ import { ProductImage } from '@/entities/product'
 import { CartControl, useCart } from '@/features/cart'
 import { getErrorMessage, type CartLine } from '@/shared/api'
 import { formatPrice, pluralize } from '@/shared/lib'
-import { Button, EmptyState, ErrorState, FieldError, LinkButton, Loader } from '@/shared/ui'
+import { Button, EmptyState, ErrorState, FieldError, LinkButton, Loader, OrderSummary } from '@/shared/ui'
 import './CartPage.css'
 
 const ITEM_WORDS: [string, string, string] = ['товар', 'товара', 'товаров']
@@ -86,31 +86,26 @@ export function CartPage() {
           ))}
         </ul>
 
-        <aside className="cart-summary" aria-label="Итого">
-          <h2 className="cart-summary__title">Ваш заказ</h2>
-          <dl className="cart-summary__rows">
-            <dt>Товары, {pluralize(availableCount, ITEM_WORDS)}</dt>
-            <dd>{formatPrice(cart.total_amount)}</dd>
-          </dl>
-          <div className="cart-summary__total">
-            <span>Итого</span>
-            <span>{formatPrice(cart.total_amount)}</span>
-          </div>
+        <OrderSummary
+          title="Ваш заказ"
+          rows={[{ label: `Товары, ${pluralize(availableCount, ITEM_WORDS)}`, value: formatPrice(cart.total_amount) }]}
+          total={formatPrice(cart.total_amount)}
+        >
           {cart.has_unavailable && (
-            <p className="cart-summary__note">
+            <p className="ui-summary__note">
               Часть товаров сейчас недоступна — они не войдут в заказ и не учтены в сумме.
             </p>
           )}
           {availableLines.length > 0 ? (
-            <LinkButton variant="primary" to="/checkout" className="cart-summary__checkout">
+            <LinkButton variant="primary" to="/checkout" className="ui-summary__action">
               Перейти к оформлению
             </LinkButton>
           ) : (
-            <Button variant="primary" className="cart-summary__checkout" disabled>
+            <Button variant="primary" className="ui-summary__action" disabled>
               Перейти к оформлению
             </Button>
           )}
-        </aside>
+        </OrderSummary>
       </div>
     </>
   )

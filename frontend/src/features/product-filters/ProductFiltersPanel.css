@@ -1,6 +1,7 @@
 /* Панель фильтров. Положение на странице (колонка, sticky) задаёт страница. */
 
 .product-filters {
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-1);
 }
@@ -9,25 +10,24 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--color-divider);
+  padding: 18px 20px 0;
 }
 
 .product-filters__title {
   margin: 0;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .product-filters__count {
-  min-width: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
+  min-width: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
   background: var(--color-brand);
   color: #fff;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
   text-align: center;
 }
 
@@ -40,21 +40,22 @@
   background: none;
   color: var(--color-primary);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .product-filters__body {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 16px;
+  gap: 22px;
+  padding: 18px 20px 20px;
 }
 
 .product-filters__group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -62,9 +63,10 @@
 }
 
 .product-filters__label {
+  margin-bottom: 2px;
   padding: 0;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .product-filters__range {
@@ -78,19 +80,27 @@
 .product-filters__option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 14px;
   cursor: pointer;
 }
 
 .product-filters__option input {
+  width: 18px;
+  height: 18px;
   margin: 0;
-  accent-color: var(--color-primary);
+  accent-color: var(--color-brand);
+  cursor: pointer;
 }
 
 .product-filters__actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-filters__actions .ui-button {
+  width: 100%;
 }
 
 @media (max-width: 720px) {
@@ -107,6 +117,6 @@
   }
 
   .product-filters:not(.product-filters--open) .product-filters__header {
-    border-bottom: 0;
+    padding-bottom: 18px;
   }
 }

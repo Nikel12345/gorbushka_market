@@ -1,0 +1,113 @@
+/*
+ * Каталог витрины (главная, страница магазина): фильтры на 5% шире, чем в кабинете (260 → 273).
+ * Чтобы плитки при этом не сжались, витрина тоже шире на 5% (--market-width 1320 → 1386).
+ */
+.catalog-layout {
+  --sidebar-layout-aside: var(--market-aside);
+  --product-tile-min: 210px;
+}
+
+.catalog {
+  position: relative;
+}
+
+.catalog__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.catalog__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  overflow-wrap: anywhere;
+}
+
+.catalog__sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.catalog__sort .ui-input {
+  width: auto;
+  min-height: 38px;
+  /* Своя стрелка вместо системной — системную от края не отодвинуть */
+  padding: 6px 36px 6px 12px;
+  border-color: transparent;
+  background: var(--color-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231f1f1f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 14px center / 11px 8px;
+  font-weight: 500;
+  appearance: none;
+}
+
+.catalog__footer {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+  font-size: 14px;
+}
+
+.catalog__more-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  color: var(--color-danger);
+}
+
+/* --- Реклама в ленте: полоса во всю ширину сетки, ~10:1 --- */
+
+.feed-promo {
+  grid-column: 1 / -1;
+}
+
+.feed-promo__link {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.feed-promo__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 10 / 1;
+  object-fit: cover;
+}
+
+/* Маркировка рекламы */
+.feed-promo__label {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  /* Узкая картинка для телефона выше полосы для компьютера */
+  .feed-promo__image--has-mobile {
+    aspect-ratio: 4 / 1;
+  }
+}
