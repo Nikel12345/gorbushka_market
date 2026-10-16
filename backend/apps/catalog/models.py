@@ -24,7 +24,7 @@ class ProductQuerySet(models.QuerySet):
 
     def with_seller_details(self):
         """Всё, что выводит кабинет продавца по товару, без N+1."""
-        return self.select_related("shop").prefetch_related("delivery_methods")
+        return self.select_related("shop").prefetch_related("delivery_methods", "images")
 
 
 class Product(TimeStampedModel):
@@ -48,7 +48,9 @@ class Product(TimeStampedModel):
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     quantity = models.PositiveIntegerField("в наличии", default=1)
-    image = models.ImageField("фото", upload_to=product_image_upload_to, blank=True, max_length=255)
+    # Обложка — кеш первого фото из ProductImage: лента, корзина и заказы читают её без
+    # лишних запросов. Напрямую не меняется, её выставляют сервисы фото (catalog/services.py).
+    image = models.ImageField("обложка", upload_to=product_image_upload_to, blank=True, max_length=255)
     # Какими способами можно получить товар. Задаёт продавец при создании/редактировании,
     # из DeliveryMethod.objects.available_for_shop(shop).
     delivery_methods = models.ManyToManyField(
@@ -91,3 +93,25 @@ class Product(TimeStampedModel):
         if update_fields is not None and {"title", "description"} & set(update_fields):
             kwargs["update_fields"] = {*update_fields, "search_text"}
         super().save(*args, **kwargs)
+
+
+class ProductImage(models.Model):
+    """
+    Фото товара. Порядок — по position (затем id), первое фото — обложка (Product.image).
+    Позиции могут идти с пропусками. Файл удаляется с диска после удаления записи,
+    когда транзакция закоммичена (catalog/signals.py).
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images", verbose_name="товар")
+    image = models.ImageField("фото", upload_to=product_image_upload_to, max_length=255)
+    position = models.PositiveIntegerField("порядок", default=0)
+    created_at = models.DateTimeField("создано", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "фото товара"
+        verbose_name_plural = "фото товара"
+        ordering = ["position", "id"]
+        indexes = [models.Index(fields=["product", "position", "id"], name="catalog_image_order_idx")]
+
+    def __str__(self):
+        return self.image.name

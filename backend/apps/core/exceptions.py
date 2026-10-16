@@ -26,10 +26,22 @@ class BusinessNotFound(BusinessError):
         super().__init__(message, code)
 
 
+class BusinessConflict(BusinessError):
+    """
+    Данные, на которых клиент построил запрос, устарели (корзина изменилась,
+    цена выросла). Клиенту нужно перечитать состояние и повторить.
+    """
+
+    status_code = 409
+
+    def __init__(self, message: str, code: str = "conflict"):
+        super().__init__(message, code)
+
+
 def api_exception_handler(exc, context):
     """
     DRF EXCEPTION_HANDLER: ошибки бизнес-правил → {"detail": "...", "code": "..."}
-    с кодом из status_code (400 / 404). Остальное — стандартная обработка DRF.
+    с кодом из status_code (400 / 404 / 409). Остальное — стандартная обработка DRF.
     """
     if isinstance(exc, BusinessError):
         return Response({"detail": exc.message, "code": exc.code}, status=exc.status_code)

@@ -48,6 +48,25 @@ class SellerShopSerializer(ShopPublicSerializer):
         fields = [*ShopPublicSerializer.Meta.fields, "updated_at"]
         read_only_fields = ["id", "products_count", "created_at", "updated_at"]
 
+    def validate_address(self, address):
+        # Нельзя стереть адрес, пока у товаров магазина есть самовывоз: покупателю некуда идти
+        if not address and self.instance is not None and self.instance.address:
+            from apps.catalog.models import Product
+            from apps.delivery.models import DeliveryMethod
+
+            uses_pickup = (
+                Product.objects.filter(shop=self.instance)
+                .on_sale()
+                .filter(delivery_methods__in=DeliveryMethod.objects.needing_shop_address())
+                .exists()
+            )
+            if uses_pickup:
+                raise serializers.ValidationError(
+                    "Нельзя убрать адрес: у товаров магазина выбран самовывоз.",
+                    code="shop_address_in_use",
+                )
+        return address
+
     def create(self, validated_data):
         return services.create_shop(**validated_data)
 

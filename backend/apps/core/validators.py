@@ -1,5 +1,8 @@
+import re
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.utils.deconstruct import deconstructible
 
 
@@ -34,3 +37,14 @@ class MaxFileSizeValidator:
             and self.max_bytes == other.max_bytes
             and self.setting == other.setting
         )
+
+
+def validate_site_link(value: str) -> None:
+    """
+    Ссылка для href: путь на сайте (/shops/5) или http(s)-адрес.
+    Не пропускает javascript:, data:, //чужой-сайт и обратные слеши (браузеры читают их
+    как /, и путь превращается в //чужой-сайт) — такое нельзя отдавать фронту в href.
+    """
+    if re.fullmatch(r"/(?![/\\])[^\s\\]*", value):
+        return
+    URLValidator(schemes=["http", "https"], message="Укажите путь на сайте (/...) или адрес http(s)://...")(value)

@@ -15,6 +15,10 @@ class DeliveryMethodQuerySet(models.QuerySet):
         """
         return self.active()
 
+    def needing_shop_address(self):
+        """Способы, для которых у магазина должен быть заполнен адрес (см. DeliveryMethod.needs_shop_address)."""
+        return self.filter(kind=DeliveryMethod.Kind.PICKUP, provider=DeliveryMethod.Provider.SHOP)
+
 
 class DeliveryMethod(TimeStampedModel):
     """Справочник способов доставки. Ведёт маркет (админка)."""
@@ -71,6 +75,11 @@ class DeliveryMethod(TimeStampedModel):
     @property
     def has_slots(self) -> bool:
         return self.slot_days_ahead > 0
+
+    @property
+    def needs_shop_address(self) -> bool:
+        """Самовывоз из магазина: покупателю нужен адрес павильона."""
+        return self.kind == self.Kind.PICKUP and self.provider == self.Provider.SHOP
 
 
 class DeliveryTimeWindow(models.Model):

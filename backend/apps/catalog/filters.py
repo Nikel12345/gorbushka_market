@@ -1,8 +1,11 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django_filters import rest_framework as filters
+from rest_framework.exceptions import ValidationError
 
 from apps.core.filters import BaseFilterSet
 
 from .models import Product
+from .pagination import ProductFeedPagination
 from .search import search_products
 
 MAX_QUERY_LENGTH = 200
@@ -36,3 +39,44 @@ class ProductFilter(BaseFilterSet):
         if value is False:
             return queryset.filter(quantity=0)
         return queryset
+
+
+def clean_feed_params(params, *, exclude=()) -> dict[str, str]:
+    """
+    Проверяет сохранённые параметры ленты — фильтры ProductFilter и sort — например,
+    для ссылки из рекламы на магазин. Правила те же, что у ленты, ошибки — Django
+    ValidationError (для форм и админки). Возвращает значения строками, как в адресе:
+    фронт кладёт их в query string как есть.
+    """
+    if not isinstance(params, dict):
+        raise DjangoValidationError("Нужен объект {параметр: значение}.")
+    allowed = [name for name in [*ProductFilter.base_filters, "sort"] if name not in exclude]
+    unknown = [name for name in params if name not in allowed]
+    if unknown:
+        raise DjangoValidationError(
+            f"Неизвестные параметры: {', '.join(unknown)}. Допустимые: {', '.join(allowed)}."
+        )
+
+    normalized = {}
+    for name, value in params.items():
+        if isinstance(value, bool):
+            value = "true" if value else "false"
+        elif not isinstance(value, (str, int, float)):
+            raise DjangoValidationError(f"{name}: значение должно быть строкой, числом или true/false.")
+        normalized[name] = str(value)
+
+    sort_options = ProductFeedPagination.sort_options
+    if "sort" in normalized and normalized["sort"] not in sort_options:
+        raise DjangoValidationError(f"sort: допустимые значения — {', '.join(sort_options)}.")
+    filterset = ProductFilter(data=normalized, queryset=Product.objects.none())
+    if not filterset.is_valid():
+        raise DjangoValidationError(
+            "; ".join(f"{name}: {' '.join(errors)}" for name, errors in filterset.errors.items())
+        )
+    try:
+        filterset.qs  # range_fields и прочие проверки, которые делает filter_queryset
+    except ValidationError as error:
+        raise DjangoValidationError(
+            "; ".join(f"{name}: {' '.join(map(str, errors))}" for name, errors in error.detail.items())
+        ) from error
+    return normalized

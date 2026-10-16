@@ -2,6 +2,7 @@
 Общие настройки для всех окружений.
 Окружение-специфичное — в dev.py / prod.py.
 """
+from decimal import Decimal
 from pathlib import Path
 
 import environ
@@ -42,6 +43,7 @@ LOCAL_APPS = [
     "apps.wallet",
     "apps.cart",
     "apps.delivery",
+    "apps.promo",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -118,6 +120,14 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 PRODUCT_IMAGE_MAX_BYTES = env.int("PRODUCT_IMAGE_MAX_MB", default=5) * 1024 * 1024
+# Сколько фото может быть у одного товара
+PRODUCT_IMAGES_MAX = env.int("PRODUCT_IMAGES_MAX", default=10)
+
+# Деньги маркета (доли от 0 до 1)
+# Комиссия маркета с выручки продавца по заказу (снимок ставки сохраняется в заказе при оформлении)
+MARKET_COMMISSION_RATE = Decimal(env.str("MARKET_COMMISSION_RATE", default="0"))
+# Какую часть суммы покупки можно оплатить бонусами
+BONUS_MAX_SHARE = Decimal(env.str("BONUS_MAX_SHARE", default="0.5"))
 
 
 # Django REST framework

@@ -11,6 +11,7 @@ urlpatterns = [
     path("catalog/", include("apps.catalog.urls")),
     path("shops/", include("apps.shops.urls")),
     path("delivery/", include("apps.delivery.urls")),
+    path("promo/", include("apps.promo.urls")),
     # Страница текущего пользователя (покупателя). Как и seller/ — маршруты
     # собираются из доменных приложений.
     path(
@@ -24,6 +25,8 @@ urlpatterns = [
             ]
         ),
     ),
+    # Сотрудники маркета (сейчас — is_staff): доставка курьером маркета.
+    path("market/", include("apps.orders.market_urls")),
     # Кабинет продавца. Каждое доменное приложение отдаёт свои seller-маршруты.
     path(
         "seller/",

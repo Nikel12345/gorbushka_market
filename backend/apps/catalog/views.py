@@ -1,7 +1,10 @@
 from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics
+from rest_framework import generics, serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.delivery.models import DeliveryMethod
 from apps.shops.mixins import SellerShopMixin
@@ -11,7 +14,12 @@ from . import services
 from .filters import ProductFilter
 from .models import Product
 from .pagination import ProductFeedPagination
-from .serializers import ProductCardSerializer, ProductPublicDetailSerializer, SellerProductSerializer
+from .serializers import (
+    ProductCardSerializer,
+    ProductImageSerializer,
+    ProductPublicDetailSerializer,
+    SellerProductSerializer,
+)
 
 
 class ProductFilterMixin:
@@ -74,6 +82,57 @@ class SellerProductDetailView(SellerShopMixin, generics.RetrieveUpdateDestroyAPI
         services.archive_product(instance)
 
 
+class SellerProductMixin(SellerShopMixin):
+    """Для view, вложенных в /seller/shops/<shop_id>/products/<product_id>/... Чужой товар — 404."""
+
+    product_url_kwarg = "product_id"
+
+    def get_product(self) -> Product:
+        if not hasattr(self, "_product"):
+            self._product = get_object_or_404(
+                Product.objects.filter(shop=self.get_shop()).on_sale(),
+                pk=self.kwargs[self.product_url_kwarg],
+            )
+        return self._product
+
+
+class SellerProductImageListCreateView(SellerProductMixin, generics.ListCreateAPIView):
+    """GET — фото товара по порядку, POST — загрузить одно фото (multipart, поле image) в конец."""
+
+    serializer_class = ProductImageSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return self.get_product().images.all()
+
+    def perform_create(self, serializer):
+        serializer.save(product=self.get_product())
+
+
+class SellerProductImageDetailView(SellerProductMixin, generics.DestroyAPIView):
+    """DELETE — удалить фото. Если это была обложка, ей станет следующее фото."""
+
+    def get_queryset(self):
+        return self.get_product().images.all()
+
+    def perform_destroy(self, instance):
+        services.delete_image(instance)
+
+
+class ProductImageOrderSerializer(serializers.Serializer):
+    ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
+
+
+class SellerProductImageOrderView(SellerProductMixin, APIView):
+    """PUT {"ids": [...]} — новый порядок всех фото товара, первое станет обложкой."""
+
+    def put(self, request, *args, **kwargs):
+        serializer = ProductImageOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        images = services.reorder_images(self.get_product(), serializer.validated_data["ids"])
+        return Response(ProductImageSerializer(images, many=True, context={"request": request}).data)
+
+
 # --- Публичное ---
 
 
@@ -97,5 +156,5 @@ class ProductPublicDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Product.objects.on_sale().select_related("shop").prefetch_related(
-            Prefetch("delivery_methods", queryset=DeliveryMethod.objects.active())
+            "images", Prefetch("delivery_methods", queryset=DeliveryMethod.objects.active())
         )

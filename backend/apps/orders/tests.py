@@ -127,9 +127,12 @@ class SellerOrderHistoryTests(OrderFixturesMixin, APITestCase):
                     "id": second.items.get().id,
                     "product_id": self.case.id,
                     "title": "Чехол",
+                    "image": None,
                     "price": "150.50",
                     "quantity": 2,
                     "total": "301.00",
+                    # заказ создан напрямую через create_order, без оформления — доставки нет
+                    "shipment": None,
                 }
             ],
         )
@@ -200,7 +203,8 @@ class AdminPagesTests(OrderFixturesMixin, TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
-        self.assertEqual(self.client.get(reverse("admin:orders_order_add")).status_code, 403)
+        # админка полностью редактируема, в том числе добавление
+        self.assertEqual(self.client.get(reverse("admin:orders_order_add")).status_code, 200)
 
 
 class BuyerOrderHistoryTests(OrderFixturesMixin, APITestCase):

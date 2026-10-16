@@ -4,10 +4,19 @@ from django.db import models
 from apps.core.models import TimeStampedModel
 
 
+class Bucket(models.TextChoices):
+    """Части баланса. «Для покупок» не хранится: это available + bonus."""
+
+    AVAILABLE = "available", "Доступно для вывода"
+    BONUS = "bonus", "Бонусы"
+    FROZEN = "frozen", "Заморожено"
+
+
 class Wallet(TimeStampedModel):
     """
-    Баланс пользователя. Поле balance — кеш суммы операций из WalletTransaction;
-    менять его можно только через wallet.services.change_balance.
+    Кошелёк пользователя (и покупателя, и продавца: выручка всех его магазинов
+    приходит сюда). Поля — кеш суммы проводок из WalletTransaction по каждой части;
+    менять их можно только через wallet.services (post_operation / change_balance).
     """
 
     user = models.OneToOneField(
@@ -16,28 +25,66 @@ class Wallet(TimeStampedModel):
         related_name="wallet",
         verbose_name="пользователь",
     )
-    balance = models.DecimalField("баланс", max_digits=14, decimal_places=2, default=0)
+    # Реальные деньги: можно тратить и выводить. Может уйти в минус только из-за
+    # комиссии маркета по заказам с оплатой при получении — это долг продавца.
+    available = models.DecimalField("доступно для вывода", max_digits=14, decimal_places=2, default=0)
+    # Только на покупки, не выводятся
+    bonus = models.DecimalField("бонусы", max_digits=14, decimal_places=2, default=0)
+    # Выручка за невыданные заказы (и, позже, заявки на вывод)
+    frozen = models.DecimalField("заморожено", max_digits=14, decimal_places=2, default=0)
 
     class Meta:
         verbose_name = "кошелёк"
         verbose_name_plural = "кошельки"
         constraints = [
-            models.CheckConstraint(condition=models.Q(balance__gte=0), name="wallet_balance_non_negative"),
+            models.CheckConstraint(condition=models.Q(bonus__gte=0), name="wallet_bonus_non_negative"),
+            models.CheckConstraint(condition=models.Q(frozen__gte=0), name="wallet_frozen_non_negative"),
         ]
 
     def __str__(self):
-        return f"{self.user} — {self.balance}"
+        return f"{self.user} — {self.available}"
+
+    @property
+    def spendable(self):
+        """Для покупок: реальные деньги (без долга) + бонусы."""
+        return max(self.available, 0) + self.bonus
 
 
-class WalletTransaction(models.Model):
-    """Журнал операций по балансу. Записи только добавляются, не меняются и не удаляются."""
+class WalletOperation(models.Model):
+    """
+    Одно бизнес-событие (оплата покупки, возврат, выручка за заказ...). Состоит из
+    проводок по кошелькам и их частям; все проводки операции — в одной транзакции.
+    """
 
     class Kind(models.TextChoices):
         DEPOSIT = "deposit", "Пополнение"
         WITHDRAWAL = "withdrawal", "Вывод"
-        PAYMENT = "payment", "Оплата заказа"
+        PAYMENT = "payment", "Оплата покупки"
         REFUND = "refund", "Возврат"
         ADJUSTMENT = "adjustment", "Корректировка"
+        BONUS = "bonus", "Начисление бонусов"
+        SALE = "sale", "Выручка за заказ (заморожена)"
+        SALE_RELEASE = "sale_release", "Выручка за выданный заказ"
+        SALE_CANCEL = "sale_cancel", "Отмена выручки"
+
+    kind = models.CharField("тип", max_length=20, choices=Kind.choices)
+    description = models.CharField("описание", max_length=255, blank=True)
+    created_at = models.DateTimeField("создано", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "операция по кошельку"
+        verbose_name_plural = "операции по кошелькам"
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} #{self.pk}"
+
+
+class WalletTransaction(models.Model):
+    """Проводка: изменение одной части одного кошелька. Записи только добавляются."""
+
+    # Совместимость: раньше тип жил на проводке, теперь — на операции
+    Kind = WalletOperation.Kind
 
     wallet = models.ForeignKey(
         Wallet,
@@ -45,16 +92,25 @@ class WalletTransaction(models.Model):
         related_name="transactions",
         verbose_name="кошелёк",
     )
+    operation = models.ForeignKey(
+        WalletOperation,
+        on_delete=models.PROTECT,
+        null=True,  # проводки до появления операций
+        related_name="entries",
+        verbose_name="операция",
+    )
+    bucket = models.CharField("часть баланса", max_length=20, choices=Bucket.choices, default=Bucket.AVAILABLE)
     # Положительная — зачисление, отрицательная — списание
     amount = models.DecimalField("сумма", max_digits=14, decimal_places=2)
+    # Значение этой части баланса после проводки
     balance_after = models.DecimalField("баланс после", max_digits=14, decimal_places=2)
-    kind = models.CharField("тип", max_length=20, choices=Kind.choices)
+    kind = models.CharField("тип", max_length=20, choices=WalletOperation.Kind.choices)
     description = models.CharField("описание", max_length=255, blank=True)
     created_at = models.DateTimeField("создано", auto_now_add=True)
 
     class Meta:
-        verbose_name = "операция по балансу"
-        verbose_name_plural = "операции по балансу"
+        verbose_name = "проводка по кошельку"
+        verbose_name_plural = "проводки по кошелькам"
         ordering = ["-created_at", "-id"]
         indexes = [
             models.Index(fields=["wallet", "-created_at", "-id"]),
@@ -64,4 +120,4 @@ class WalletTransaction(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.get_kind_display()} {self.amount}"
+        return f"{self.get_kind_display()} {self.amount} ({self.bucket})"

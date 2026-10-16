@@ -14,7 +14,7 @@ from apps.delivery.models import DeliveryMethod
 from apps.shops.models import Shop
 from apps.users.models import User
 
-from .models import Product
+from .models import Product, ProductImage
 
 
 def pickup_id():
@@ -26,7 +26,7 @@ class SellerProductTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(email="seller@example.com", password="x")
         self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.user, name="Павильон 12")
+        self.shop = Shop.objects.create(owner=self.user, name="Павильон 12", address="2 этаж, B-12")
         self.foreign_shop = Shop.objects.create(owner=self.other, name="Чужой")
         self.client.force_login(self.user)
 
@@ -486,7 +486,7 @@ class SellerProductPatchTests(APITestCase):
 class ProductImageTests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
         self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("10"))
         self.client.force_login(self.owner)
         self.detail_url = reverse("seller-product-detail", args=[self.shop.id, self.product.id])
@@ -636,7 +636,7 @@ class ShopPageCursorTests(APITestCase):
 class ProductDeliveryMethodsTests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
         self.pickup = DeliveryMethod.objects.get(code="pickup")
         self.courier = DeliveryMethod.objects.get(code="market_courier")
         self.client.force_login(self.owner)
@@ -832,3 +832,368 @@ class SellerAllProductsTests(APITestCase):
         response = self.client.get(reverse("seller-product-list", args=[self.shop_a.id]))
 
         self.assertEqual(response.data["results"][0]["shop"], {"id": self.shop_a.id, "name": "Павильон A"})
+
+
+class PickupRequiresShopAddressTests(APITestCase):
+    """Самовывоз можно назначить товару, только если у магазина есть адрес."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.pickup = DeliveryMethod.objects.get(code="pickup")
+        self.courier = DeliveryMethod.objects.get(code="market_courier")
+        self.client.force_login(self.owner)
+        self.list_url = reverse("seller-product-list", args=[self.shop.id])
+
+    def create(self, method_ids):
+        return self.client.post(
+            self.list_url,
+            {"title": "iPhone 15", "price": "100", "delivery_method_ids": method_ids},
+            format="json",
+        )
+
+    def make_product(self, methods):
+        product = Product.objects.create(shop=self.shop, title="A", price=Decimal("1"))
+        product.delivery_methods.set(methods)
+        return product
+
+    def test_pickup_without_shop_address_is_rejected(self):
+        response = self.create([self.pickup.id])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["delivery_method_ids"][0].code, "shop_address_required")
+        self.assertIn("адрес магазина", str(response.data["delivery_method_ids"][0]))
+        self.assertFalse(Product.objects.exists())
+
+    def test_pickup_together_with_courier_is_rejected_too(self):
+        response = self.create([self.courier.id, self.pickup.id])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("delivery_method_ids", response.data)
+
+    def test_courier_does_not_need_shop_address(self):
+        response = self.create([self.courier.id])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+    def test_pickup_allowed_when_shop_has_address(self):
+        self.shop.address = "2 этаж, B-12"
+        self.shop.save()
+
+        response = self.create([self.pickup.id])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+
+    def test_patch_to_pickup_without_address_is_rejected(self):
+        product = self.make_product([self.courier])
+
+        response = self.client.patch(
+            reverse("seller-product-detail", args=[self.shop.id, product.id]),
+            {"delivery_method_ids": [self.pickup.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(list(product.delivery_methods.all()), [self.courier])
+
+    def test_patch_other_fields_does_not_recheck_methods(self):
+        # старые товары с самовывозом (проставлен миграцией) редактируются как раньше
+        product = self.make_product([self.pickup])
+
+        response = self.client.patch(
+            reverse("seller-product-detail", args=[self.shop.id, product.id]), {"price": "200"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+
+    def test_rule_follows_method_kind_and_provider_not_code(self):
+        # любой самовывоз силами магазина требует адрес; самовывоз маркета — нет
+        shop_pickup = DeliveryMethod.objects.create(
+            code="pickup_2", name="Самовывоз со склада", kind="pickup", provider="shop"
+        )
+        market_pickup = DeliveryMethod.objects.create(
+            code="market_pickup", name="Пункт выдачи маркета", kind="pickup", provider="market"
+        )
+
+        self.assertEqual(self.create([shop_pickup.id]).status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.create([market_pickup.id]).status_code, status.HTTP_201_CREATED)
+
+
+class ShopAddressInUseTests(APITestCase):
+    """Адрес нельзя стереть, пока у товаров магазина выбран самовывоз."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
+        self.url = reverse("seller-shop-detail", args=[self.shop.id])
+        self.client.force_login(self.owner)
+
+    def make_product(self, code, **kwargs):
+        product = Product.objects.create(shop=self.shop, title="A", price=Decimal("1"), **kwargs)
+        product.delivery_methods.set([DeliveryMethod.objects.get(code=code)])
+        return product
+
+    def test_cannot_clear_address_while_products_use_pickup(self):
+        self.make_product("pickup")
+
+        for empty in ("", "   "):
+            with self.subTest(address=empty):
+                response = self.client.patch(self.url, {"address": empty}, format="json")
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.data["address"][0].code, "shop_address_in_use")
+        self.shop.refresh_from_db()
+        self.assertEqual(self.shop.address, "2 этаж, B-12")
+
+    def test_can_change_address_to_another(self):
+        self.make_product("pickup")
+
+        response = self.client.patch(self.url, {"address": "1 этаж, A-3"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_can_clear_address_without_pickup_products(self):
+        self.make_product("market_courier")
+        self.make_product("pickup", status=Product.Status.ARCHIVED)
+
+        response = self.client.patch(self.url, {"address": ""}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.shop.refresh_from_db()
+        self.assertEqual(self.shop.address, "")
+
+    def test_other_shop_pickup_does_not_block(self):
+        other = Shop.objects.create(owner=self.owner, name="Другой", address="3 этаж")
+        product = Product.objects.create(shop=other, title="B", price=Decimal("1"))
+        product.delivery_methods.set([DeliveryMethod.objects.get(code="pickup")])
+
+        response = self.client.patch(self.url, {"address": ""}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class ProductImagesTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.other = User.objects.create_user(email="other@example.com", password="x")
+        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
+        self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("10"))
+        self.client.force_login(self.owner)
+        self.images_url = reverse("seller-product-images", args=[self.shop.id, self.product.id])
+        self.order_url = reverse("seller-product-images-order", args=[self.shop.id, self.product.id])
+        self.detail_url = reverse("seller-product-detail", args=[self.shop.id, self.product.id])
+
+    def image_url(self, image_id):
+        return reverse("seller-product-image-detail", args=[self.shop.id, self.product.id, image_id])
+
+    def upload(self, name="photo.png"):
+        return self.client.post(self.images_url, {"image": make_image(name)}, format="multipart")
+
+    def upload_three(self):
+        return [self.upload(f"{n}.png").data["id"] for n in range(3)]
+
+    def cover(self):
+        self.product.refresh_from_db()
+        return self.product.image.name
+
+    def names(self):
+        return list(self.product.images.values_list("image", flat=True))
+
+    def test_upload_adds_to_end_and_first_is_cover(self):
+        first = self.upload()
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED, first.data)
+        self.assertEqual(set(first.data), {"id", "url"})
+        self.assertTrue(first.data["url"].startswith("/media/products/"))
+        second = self.upload()
+
+        listed = self.client.get(self.images_url).data
+        self.assertEqual([i["id"] for i in listed], [first.data["id"], second.data["id"]])
+        self.assertEqual(f"/media/{self.cover()}", first.data["url"])
+
+    def test_images_everywhere_cover_in_cards(self):
+        ids = self.upload_three()
+
+        seller = self.client.get(self.detail_url).data
+        public = self.client.get(reverse("product-detail", args=[self.product.id])).data
+        for data in (seller, public):
+            self.assertEqual([i["id"] for i in data["images"]], ids)
+            self.assertEqual(data["image"], data["images"][0]["url"])
+        card = self.client.get(reverse("product-feed")).data["results"][0]
+        self.assertEqual(card["image"], seller["image"])
+        self.assertNotIn("images", card)
+
+    def test_create_product_with_several_images(self):
+        response = self.client.post(
+            reverse("seller-product-list", args=[self.shop.id]),
+            {
+                "title": "С фото",
+                "price": "100",
+                "delivery_method_ids": [pickup_id()],
+                "images": [make_image("a.png"), make_image("b.jpg", fmt="JPEG")],
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(len(response.data["images"]), 2)
+        self.assertTrue(response.data["images"][1]["url"].endswith(".jpg"))
+        self.assertEqual(response.data["image"], response.data["images"][0]["url"])
+
+    def test_patch_images_appends_and_response_is_fresh(self):
+        self.upload()
+
+        response = self.client.patch(self.detail_url, {"images": [make_image(), make_image()]}, format="multipart")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(len(response.data["images"]), 3)
+
+    def test_delete_cover_makes_next_one_cover_and_removes_file(self):
+        first, second, _ = self.upload_three()
+        first_name = ProductImage.objects.get(pk=first).image.name
+        storage = self.product.image.storage
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(self.image_url(first))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(self.cover(), ProductImage.objects.get(pk=second).image.name)
+        self.assertFalse(storage.exists(first_name))
+
+    def test_delete_last_image_clears_cover(self):
+        image_id = self.upload().data["id"]
+
+        self.client.delete(self.image_url(image_id))
+
+        self.assertEqual(self.cover(), "")
+        self.assertIsNone(self.client.get(self.detail_url).data["image"])
+
+    def test_reorder_changes_cover(self):
+        a, b, c = self.upload_three()
+
+        response = self.client.put(self.order_url, {"ids": [c, a, b]}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual([i["id"] for i in response.data], [c, a, b])
+        self.assertEqual(self.cover(), ProductImage.objects.get(pk=c).image.name)
+        self.assertEqual([i["id"] for i in self.client.get(self.images_url).data], [c, a, b])
+
+    def test_reorder_must_list_every_image_once(self):
+        a, b, c = self.upload_three()
+        foreign = Product.objects.create(shop=self.shop, title="Другой", price=Decimal("1"))
+        foreign_image = ProductImage.objects.create(product=foreign, image="products/x.png")
+
+        for ids in ([a, b], [a, b, c, c], [a, b, foreign_image.id]):
+            with self.subTest(ids=ids):
+                response = self.client.put(self.order_url, {"ids": ids}, format="json")
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertEqual(response.data["code"], "image_order_mismatch")
+        self.assertEqual([i["id"] for i in self.client.get(self.images_url).data], [a, b, c])
+
+    @override_settings(PRODUCT_IMAGES_MAX=2)
+    def test_limit(self):
+        self.upload()
+        self.upload()
+
+        response = self.upload()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["code"], "too_many_images")
+
+        response = self.client.patch(self.detail_url, {"images": [make_image()]}, format="multipart")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("images", response.data)
+        self.assertEqual(self.product.images.count(), 2)
+
+    def test_not_an_image_is_rejected(self):
+        fake = SimpleUploadedFile("virus.png", b"definitely not an image", content_type="image/png")
+
+        response = self.client.post(self.images_url, {"image": fake}, format="multipart")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("image", response.data)
+        self.assertFalse(self.product.images.exists())
+
+    def test_legacy_image_field_replaces_only_cover(self):
+        ids = self.upload_three()
+        b_name = ProductImage.objects.get(pk=ids[1]).image.name
+
+        response = self.client.patch(self.detail_url, {"image": make_image("new.jpg", fmt="JPEG")}, format="multipart")
+
+        # то же первое фото с новым файлом, остальные на месте
+        self.assertEqual([i["id"] for i in response.data["images"]], ids)
+        self.assertTrue(response.data["image"].endswith(".jpg"))
+
+        response = self.client.patch(self.detail_url, {"image": None}, format="json")
+
+        self.assertEqual(len(response.data["images"]), 2)
+        self.assertEqual(self.cover(), b_name)
+
+    def test_other_seller_gets_404(self):
+        image_id = self.upload().data["id"]
+        self.client.force_login(self.other)
+
+        responses = [
+            self.client.get(self.images_url),
+            self.client.post(self.images_url, {"image": make_image()}, format="multipart"),
+            self.client.delete(self.image_url(image_id)),
+            self.client.put(self.order_url, {"ids": [image_id]}, format="json"),
+        ]
+
+        for response in responses:
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(self.product.images.count(), 1)
+
+    def test_image_of_other_product_cannot_be_deleted_via_this_url(self):
+        foreign = Product.objects.create(shop=self.shop, title="Другой", price=Decimal("1"))
+        foreign_image = ProductImage.objects.create(product=foreign, image="products/x.png")
+
+        response = self.client.delete(self.image_url(foreign_image.id))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(ProductImage.objects.filter(pk=foreign_image.pk).exists())
+
+    def test_migration_copies_current_image_as_cover(self):
+        import importlib
+
+        from django.apps import apps as global_apps
+
+        migration = importlib.import_module("apps.catalog.migrations.0005_product_images")
+        Product.objects.filter(pk=self.product.pk).update(image="products/old.png")
+        Product.objects.create(shop=self.shop, title="Без фото", price=Decimal("1"))
+
+        migration.copy_current_image(global_apps, None)
+
+        self.assertEqual(
+            list(ProductImage.objects.values_list("product_id", "image", "position")),
+            [(self.product.id, "products/old.png", 0)],
+        )
+
+    def test_admin_inline_reorder_updates_cover(self):
+        a, b, _ = self.upload_three()
+        admin = User.objects.create_superuser(email="admin@example.com", password="x")
+        self.client.force_login(admin)
+        url = reverse("admin:catalog_product_change", args=[self.product.id])
+        self.assertEqual(self.client.get(url).status_code, status.HTTP_200_OK)
+
+        data = {
+            "shop": self.shop.id,
+            "title": self.product.title,
+            "description": "",
+            "price": "10",
+            "quantity": 1,
+            "status": "active",
+            "images-TOTAL_FORMS": "3",
+            "images-INITIAL_FORMS": "3",
+        }
+        for index, image in enumerate(self.product.images.all()):
+            data[f"images-{index}-id"] = image.id
+            data[f"images-{index}-product"] = self.product.id
+            data[f"images-{index}-position"] = 0 if image.id == b else index + 1
+        data["images-0-DELETE"] = "on"  # первое фото (a) удаляем
+
+        response = self.client.post(url, data)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(ProductImage.objects.filter(pk=a).exists())
+        self.assertEqual(self.cover(), ProductImage.objects.get(pk=b).image.name)

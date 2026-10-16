@@ -7,7 +7,9 @@ from .serializers import BalanceSerializer
 
 
 class BalanceView(APIView):
+    """Части баланса: доступно для вывода, бонусы, заморожено и «для покупок» (доступно + бонусы)."""
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(BalanceSerializer({"balance": services.get_balance(request.user)}).data)
+        return Response(BalanceSerializer(services.get_wallet(request.user)).data)

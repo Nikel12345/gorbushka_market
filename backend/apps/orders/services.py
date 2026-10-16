@@ -9,7 +9,7 @@ from apps.catalog.models import Product
 from apps.core.exceptions import BusinessError
 from apps.shops.models import Shop
 
-from .models import Order, OrderItem
+from .models import Order, OrderItem, Purchase, Shipment
 
 
 @dataclass(frozen=True)
@@ -19,10 +19,18 @@ class OrderLine:
 
 
 @transaction.atomic
-def create_order(*, buyer, shop: Shop, lines: Iterable[OrderLine]) -> Order:
+def create_order(
+    *,
+    buyer,
+    shop: Shop,
+    lines: Iterable[OrderLine],
+    purchase: Purchase | None = None,
+    shipment: Shipment | None = None,
+) -> Order:
     """
     Оформляет заказ в магазине: фиксирует цены, списывает остатки.
     Всё в одной транзакции — либо заказ создан и остатки списаны, либо ничего.
+    Покупку целиком (несколько магазинов, доставка, оплата) оформляет orders.checkout.
     """
     quantities: Counter[int] = Counter()
     for line in lines:
@@ -63,7 +71,7 @@ def create_order(*, buyer, shop: Shop, lines: Iterable[OrderLine]) -> Order:
         (products[product_id].price * quantity for product_id, quantity in quantities.items()),
         Decimal("0"),
     )
-    order = Order.objects.create(shop=shop, buyer=buyer, total_amount=total)
+    order = Order.objects.create(shop=shop, buyer=buyer, purchase=purchase, shipment=shipment, total_amount=total)
 
     OrderItem.objects.bulk_create(
         OrderItem(
