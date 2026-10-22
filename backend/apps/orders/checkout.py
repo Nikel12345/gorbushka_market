@@ -33,6 +33,7 @@ from apps.catalog.models import Product
 from apps.core.exceptions import BusinessConflict, BusinessError
 from apps.delivery.models import DeliveryMethod
 from apps.delivery.services import DeliverySlot, validate_slot
+from apps.recommendations import services as bought_together
 from apps.shops.models import Shop
 from apps.wallet.services import get_wallet
 
@@ -355,4 +356,6 @@ def place_purchase(
     payments.charge_purchase(purchase, use_bonus=use_bonus)
 
     CartItem.objects.filter(cart__user=user, product_id__in=[line.product.id for line in plan.lines]).delete()
+    # «С этим товаром часто покупают»: сейчас или по cron — решает сама функция
+    bought_together.on_purchase_placed(purchase)
     return purchase

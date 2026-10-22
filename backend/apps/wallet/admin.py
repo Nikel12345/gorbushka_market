@@ -44,7 +44,7 @@ class WalletAdmin(admin.ModelAdmin):
     """
 
     form = WalletAdminForm
-    list_display = ("user", "available", "bonus", "frozen", "updated_at")
+    list_display = ("user", "available", "bonus", "updated_at")
     search_fields = ("user__email",)
     readonly_fields = ("created_at", "updated_at")
     inlines = [WalletTransactionInline]

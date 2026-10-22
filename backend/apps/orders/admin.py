@@ -46,8 +46,8 @@ class OrderAdminForm(forms.ModelForm):
 class OrderAdmin(admin.ModelAdmin):
     """
     Всё редактируется. Смена статуса у существующего заказа идёт через
-    orders.statuses.change_status (force): с возвратом остатков и денег при отмене,
-    выручкой продавцу при выдаче и записью в журнал. Из финального статуса выйти нельзя.
+    orders.statuses.change_status (force): с возвратом остатков и денег при отмене
+    и записью в журнал. Из финального статуса выйти нельзя.
     """
 
     form = OrderAdminForm
@@ -75,7 +75,7 @@ class OrderAdmin(admin.ModelAdmin):
 class PurchaseOrderInline(admin.TabularInline):
     model = Order
     extra = 0
-    fields = ("shop", "shipment", "status", "total_amount", "bonus_amount", "commission_amount")
+    fields = ("shop", "shipment", "status", "total_amount", "bonus_amount")
     # Статус — на странице заказа: там его смена проходит через change_status
     readonly_fields = ("status",)
     show_change_link = True

@@ -65,7 +65,7 @@ class DeliveryMethodApiTests(APITestCase):
             {
                 "id": pickup["id"],
                 "code": "pickup",
-                "name": "Самовывоз из павильона",
+                "name": "Самовывоз из магазина",
                 "kind": "pickup",
                 "provider": "shop",
                 "description": "",

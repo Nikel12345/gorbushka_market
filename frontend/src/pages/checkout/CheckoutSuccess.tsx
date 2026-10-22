@@ -22,10 +22,7 @@ export function CheckoutSuccess({ purchase }: { purchase: Purchase }) {
         {purchase.shipments.map((shipment) => (
           <li key={shipment.id} className="checkout-shipment">
             <div className="checkout-shipment__head">
-              <span className="checkout-shipment__name">
-                {shipment.delivery_method.name}
-                {shipment.shop && <span className="ui-muted"> · {shipment.shop.name}</span>}
-              </span>
+              <span className="checkout-shipment__name">{shipment.delivery_method.name}</span>
               <span className="checkout-shipment__price">{formatDeliveryPrice(shipment.price)}</span>
             </div>
             {shipment.slot && <span>{formatSlot(shipment.slot)}</span>}

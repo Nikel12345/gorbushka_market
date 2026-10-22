@@ -113,5 +113,8 @@ export function useCursorFeed<T>(
     else fetchPage()
   }, [failed, fetchPage, nextCursor])
 
-  return { ...state, hasMore, loadMore, retry }
+  /** Загрузить ленту заново с начала (данные изменились); старые элементы видны до ответа */
+  const reload = useCallback(() => fetchPage(), [fetchPage])
+
+  return { ...state, hasMore, loadMore, retry, reload }
 }

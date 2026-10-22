@@ -3,7 +3,7 @@ import { formatDate, formatPersonName } from '@/shared/lib'
 import { Avatar, Card } from '@/shared/ui'
 import './SellerProfilePage.css'
 
-/** Профиль продавца: данные пользователя (User). Магазины — в меню, у каждого свой профиль. */
+/** Профиль сотрудника: данные пользователя (User). Профиль магазина — в разделе «Магазин». */
 export function SellerProfilePage() {
   const { user } = useAuth()
   if (!user) return null
@@ -16,7 +16,7 @@ export function SellerProfilePage() {
         <div className="profile-hero__text">
           <h1 className="profile-hero__name">{name}</h1>
           <p className="profile-hero__meta">
-            {user.email} · на площадке с {formatDate(user.date_joined)}
+            {user.email} · с нами с {formatDate(user.date_joined)}
           </p>
         </div>
       </section>

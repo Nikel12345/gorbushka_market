@@ -1,50 +1,40 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate } from 'react-router'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/features/auth'
 import { SellerContext, type SellerContextValue } from '@/features/seller'
-import { getErrorMessage, sellerApi, type Shop } from '@/shared/api'
+import { adminApi, ApiError, getErrorMessage, type Shop } from '@/shared/api'
 import { formatPersonName, useRequest } from '@/shared/lib'
-import { Avatar, Button, Card, ErrorState, Loader } from '@/shared/ui'
+import { Avatar, Button, Card, EmptyState, ErrorState, Loader } from '@/shared/ui'
 import { Logo } from './Logo'
-import { AddIcon, OrdersIcon, ProfileIcon, ShopIcon } from './SellerNavIcons'
+import {
+  CategoriesIcon,
+  CharacteristicsIcon,
+  GroupsIcon,
+  OrdersIcon,
+  ProductsIcon,
+  ProfileIcon,
+  ShopIcon,
+} from './SellerNavIcons'
 import './SellerLayout.css'
 
-const loadShops = (signal: AbortSignal) => sellerApi.listShops({ signal })
+const loadShop = (signal: AbortSignal) => adminApi.getShop({ signal })
 
 const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'seller-nav__link seller-nav__link--active' : 'seller-nav__link'
 
-const subLinkClassName = ({ isActive }: { isActive: boolean }) =>
-  isActive ? 'seller-nav__sub-link seller-nav__sub-link--active' : 'seller-nav__sub-link'
-
-/** Каркас кабинета продавца: верхняя панель, меню справа, контент. Шапки витрины здесь нет. */
+/** Каркас админки магазина: верхняя панель, меню справа, контент. Шапки витрины здесь нет. */
 export function SellerLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const shopMatch = useMatch('/seller/shops/:shopId/*')
 
-  const shopsRequest = useRequest(loadShops)
-  const { mutate } = shopsRequest
-  const shops = useMemo(() => shopsRequest.data ?? [], [shopsRequest.data])
-
-  // Запоминаем последний открытый магазин: по нему /seller и заказы выбирают магазин по умолчанию
-  const urlShopId = shopMatch ? Number(shopMatch.params.shopId) : null
-  const [lastShopId, setLastShopId] = useState<number | null>(null)
-  if (urlShopId !== null && !Number.isNaN(urlShopId) && urlShopId !== lastShopId) {
-    setLastShopId(urlShopId)
-  }
-  const activeShopId = shops.some((shop) => shop.id === lastShopId) ? lastShopId : (shops[0]?.id ?? null)
-
-  const addShop = useCallback((shop: Shop) => mutate((data) => [...data, shop]), [mutate])
-  const updateShop = useCallback(
-    (shop: Shop) => mutate((data) => data.map((item) => (item.id === shop.id ? shop : item))),
-    [mutate],
-  )
+  const shopRequest = useRequest(loadShop)
+  const { mutate } = shopRequest
+  const updateShop = useCallback((shop: Shop) => mutate(() => shop), [mutate])
 
   const contextValue = useMemo<SellerContextValue | null>(
-    () => (shopsRequest.data ? { shops, activeShopId, addShop, updateShop } : null),
-    [shopsRequest.data, shops, activeShopId, addShop, updateShop],
+    () => (shopRequest.data ? { shop: shopRequest.data, updateShop } : null),
+    [shopRequest.data, updateShop],
   )
 
   // Меню на телефоне свёрнуто; переход по пункту закрывает его
@@ -67,10 +57,19 @@ export function SellerLayout() {
         <Outlet />
       </SellerContext.Provider>
     )
-  } else if (shopsRequest.status === 'error') {
+  } else if (shopRequest.status === 'error') {
+    // 404 — магазин ещё не заведён: его создают в админке Django
+    const noShop = shopRequest.error instanceof ApiError && shopRequest.error.status === 404
     content = (
       <Card>
-        <ErrorState message={getErrorMessage(shopsRequest.error)} onRetry={shopsRequest.reload} />
+        {noShop ? (
+          <EmptyState
+            title="Магазин ещё не заведён"
+            text="Создайте его в админке Django — после этого здесь появятся товары и заказы."
+          />
+        ) : (
+          <ErrorState message={getErrorMessage(shopRequest.error)} onRetry={shopRequest.reload} />
+        )}
       </Card>
     )
   } else {
@@ -81,7 +80,7 @@ export function SellerLayout() {
     <div className="seller">
       <header className="seller-bar">
         <Logo />
-        <span className="seller-bar__section">Кабинет продавца</span>
+        <span className="seller-bar__section">Управление магазином</span>
         <span className="seller-bar__spacer" />
         {user && (
           <Link to="/seller/profile" className="seller-bar__user" title={user.email}>
@@ -93,56 +92,48 @@ export function SellerLayout() {
       </header>
 
       <div className="seller-body">
-        <nav className={menuOpen ? 'seller-nav seller-nav--open' : 'seller-nav'} aria-label="Разделы кабинета">
+        <nav className={menuOpen ? 'seller-nav seller-nav--open' : 'seller-nav'} aria-label="Разделы админки">
           <button
             type="button"
             className="seller-nav__toggle"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
           >
-            Меню кабинета
+            Меню
             <span aria-hidden="true">{menuOpen ? '▴' : '▾'}</span>
           </button>
 
           <div className="seller-nav__content">
-            <p className="seller-nav__heading">Магазины</p>
-            {shops.map((shop) => (
-              <div key={shop.id} className="seller-nav__shop">
-                <NavLink
-                  to={`/seller/shops/${shop.id}/products`}
-                  className={() =>
-                    shop.id === urlShopId ? 'seller-nav__link seller-nav__link--current' : 'seller-nav__link'
-                  }
-                  title={shop.name}
-                >
-                  <ShopIcon />
-                  <span className="seller-nav__text">{shop.name}</span>
-                </NavLink>
-                <ul className="seller-nav__sub">
-                  <li>
-                    <NavLink to={`/seller/shops/${shop.id}/products`} className={subLinkClassName}>
-                      Товары
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink to={`/seller/shops/${shop.id}/profile`} className={subLinkClassName}>
-                      Профиль магазина
-                    </NavLink>
-                  </li>
-                </ul>
-              </div>
-            ))}
-            <NavLink to="/seller/shops/new" className={navLinkClassName}>
-              <AddIcon />
-              <span className="seller-nav__text">Добавить магазин</span>
+            <span className="seller-nav__heading">Витрина</span>
+            <NavLink to="/seller/products" className={navLinkClassName}>
+              <ProductsIcon />
+              <span className="seller-nav__text">Товары</span>
+            </NavLink>
+            <NavLink to="/seller/categories" className={navLinkClassName}>
+              <CategoriesIcon />
+              <span className="seller-nav__text">Категории</span>
+            </NavLink>
+            <NavLink to="/seller/characteristics" className={navLinkClassName}>
+              <CharacteristicsIcon />
+              <span className="seller-nav__text">Характеристики</span>
+            </NavLink>
+            <NavLink to="/seller/groups" className={navLinkClassName}>
+              <GroupsIcon />
+              <span className="seller-nav__text">Группы вариантов</span>
             </NavLink>
 
-            <hr className="seller-nav__divider" />
-
+            <span className="seller-nav__heading">Магазин</span>
             <NavLink to="/seller/orders" className={navLinkClassName}>
               <OrdersIcon />
               <span className="seller-nav__text">Заказы</span>
             </NavLink>
+            <NavLink to="/seller/shop" className={navLinkClassName}>
+              <ShopIcon />
+              <span className="seller-nav__text">Профиль магазина</span>
+            </NavLink>
+
+            <hr className="seller-nav__divider" />
+
             <NavLink to="/seller/profile" className={navLinkClassName}>
               <ProfileIcon />
               <span className="seller-nav__text">Профиль</span>

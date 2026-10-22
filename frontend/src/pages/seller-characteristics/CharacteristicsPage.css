@@ -1,0 +1,108 @@
+/* Справочник характеристик: карточка на место привязки, строка на характеристику, значения плашками */
+
+.characteristics-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.characteristics-list__item {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 8px 24px;
+  align-items: start;
+  padding: 16px 24px;
+}
+
+.characteristics-list__item + .characteristics-list__item {
+  border-top: 1px solid var(--color-divider);
+}
+
+.characteristics-list__head {
+  display: flex;
+  flex-direction: column;
+}
+
+.characteristics-list__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.characteristics-list__count {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.characteristics-list__edit {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.characteristics-list__edit:hover {
+  text-decoration: underline;
+}
+
+.characteristics-list__edit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.characteristics-list__values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.characteristics-list__values .ui-chip {
+  font-size: 13px;
+  line-height: 26px;
+}
+
+/* Поле нового значения — во всю ширину под плашками */
+.characteristics-list__values .inline-create {
+  flex-basis: 100%;
+  max-width: 480px;
+}
+
+.characteristics-list__add {
+  padding: 0 10px;
+  border: 1px dashed var(--color-input-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 13px;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.characteristics-list__add:hover {
+  border-color: var(--color-brand);
+}
+
+.characteristics-list__add:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.characteristics-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 720px) {
+  .characteristics-list__item {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px 16px;
+  }
+}

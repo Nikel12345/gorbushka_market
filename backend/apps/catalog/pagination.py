@@ -6,7 +6,8 @@ class ProductFeedPagination(KeysetPagination):
     max_page_size = 50
     sort_options = {
         "new": SortOption("created_at", descending=True),
-        "price_asc": SortOption("price"),
-        "price_desc": SortOption("price", descending=True),
+        # Цена в рублях растёт вместе с ценой в долларах
+        "price_asc": SortOption("price_usd"),
+        "price_desc": SortOption("price_usd", descending=True),
     }
     default_sort = "new"

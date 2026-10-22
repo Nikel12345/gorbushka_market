@@ -1,37 +1,49 @@
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Q
 from django_filters import rest_framework as filters
-from rest_framework.exceptions import ValidationError
 
 from apps.core.filters import BaseFilterSet
+from apps.currency.services import usd_below, usd_from
 
-from .models import Product
-from .pagination import ProductFeedPagination
-from .search import search_products
+from .categories import CategoryTree
+from .models import Characteristic, Product, ProductGroup
+from .search import normalize, search_products
 
 MAX_QUERY_LENGTH = 200
 
 
 class ProductFilter(BaseFilterSet):
     """
-    Единые фильтры товаров: публичная лента, кабинет продавца и любые будущие
+    Единые фильтры товаров: публичная лента, админка магазина и любые будущие
     списки товаров. Новые фильтры (категория, характеристики) добавляются сюда.
     """
 
     q = filters.CharFilter(method="filter_search", label="Поиск")
     shop = filters.NumberFilter(field_name="shop_id", label="Магазин")
-    price_min = filters.NumberFilter(field_name="price", lookup_expr="gte", label="Цена от")
-    price_max = filters.NumberFilter(field_name="price", lookup_expr="lte", label="Цена до")
+    category = filters.NumberFilter(method="filter_category", label="Категория (вместе с подкатегориями)")
+    # В рублях, как цена на витрине; в базе цена в долларах — границы переводятся по курсу
+    price_min = filters.NumberFilter(method="filter_price_min", label="Цена от, ₽")
+    price_max = filters.NumberFilter(method="filter_price_max", label="Цена до, ₽")
     in_stock = filters.BooleanFilter(method="filter_in_stock", label="Только в наличии")
     delivery_method = filters.NumberFilter(field_name="delivery_methods", label="Способ доставки")
+    group = filters.NumberFilter(field_name="group_id", label="Группа вариантов")
 
     range_fields = (("price_min", "price_max"),)
 
     class Meta:
         model = Product
-        fields = ["q", "shop", "price_min", "price_max", "in_stock", "delivery_method"]
+        fields = ["q", "shop", "category", "price_min", "price_max", "in_stock", "delivery_method", "group"]
 
     def filter_search(self, queryset, name, value):
         return search_products(queryset, value[:MAX_QUERY_LENGTH])
+
+    def filter_category(self, queryset, name, value):
+        return queryset.filter(category_id__in=CategoryTree.load().subtree_ids(int(value)))
+
+    def filter_price_min(self, queryset, name, value):
+        return queryset.filter(price_usd__gte=usd_from(value))
+
+    def filter_price_max(self, queryset, name, value):
+        return queryset.filter(price_usd__lt=usd_below(value))
 
     def filter_in_stock(self, queryset, name, value):
         if value is True:
@@ -41,42 +53,36 @@ class ProductFilter(BaseFilterSet):
         return queryset
 
 
-def clean_feed_params(params, *, exclude=()) -> dict[str, str]:
-    """
-    Проверяет сохранённые параметры ленты — фильтры ProductFilter и sort — например,
-    для ссылки из рекламы на магазин. Правила те же, что у ленты, ошибки — Django
-    ValidationError (для форм и админки). Возвращает значения строками, как в адресе:
-    фронт кладёт их в query string как есть.
-    """
-    if not isinstance(params, dict):
-        raise DjangoValidationError("Нужен объект {параметр: значение}.")
-    allowed = [name for name in [*ProductFilter.base_filters, "sort"] if name not in exclude]
-    unknown = [name for name in params if name not in allowed]
-    if unknown:
-        raise DjangoValidationError(
-            f"Неизвестные параметры: {', '.join(unknown)}. Допустимые: {', '.join(allowed)}."
-        )
+def available_in_category(queryset, category_id: int):
+    """Характеристики и группы, подходящие товарам категории: без категории, её и категорий выше."""
+    path = [category.id for category in CategoryTree.load().path(category_id)]
+    return queryset.filter(Q(category__isnull=True) | Q(category_id__in=path))
 
-    normalized = {}
-    for name, value in params.items():
-        if isinstance(value, bool):
-            value = "true" if value else "false"
-        elif not isinstance(value, (str, int, float)):
-            raise DjangoValidationError(f"{name}: значение должно быть строкой, числом или true/false.")
-        normalized[name] = str(value)
 
-    sort_options = ProductFeedPagination.sort_options
-    if "sort" in normalized and normalized["sort"] not in sort_options:
-        raise DjangoValidationError(f"sort: допустимые значения — {', '.join(sort_options)}.")
-    filterset = ProductFilter(data=normalized, queryset=Product.objects.none())
-    if not filterset.is_valid():
-        raise DjangoValidationError(
-            "; ".join(f"{name}: {' '.join(errors)}" for name, errors in filterset.errors.items())
-        )
-    try:
-        filterset.qs  # range_fields и прочие проверки, которые делает filter_queryset
-    except ValidationError as error:
-        raise DjangoValidationError(
-            "; ".join(f"{name}: {' '.join(map(str, errors))}" for name, errors in error.detail.items())
-        ) from error
-    return normalized
+class ProductGroupFilter(BaseFilterSet):
+    q = filters.CharFilter(method="filter_search", label="Поиск по названию")
+    category = filters.NumberFilter(method="filter_category", label="Подходят товарам категории")
+
+    class Meta:
+        model = ProductGroup
+        fields = ["q", "category"]
+
+    def filter_category(self, queryset, name, value):
+        return available_in_category(queryset, int(value))
+
+    def filter_search(self, queryset, name, value):
+        # Групп немного, а LIKE в SQLite не понимает регистр кириллицы — фильтруем в Python
+        terms = normalize(value[:MAX_QUERY_LENGTH]).split()
+        ids = [pk for pk, title in queryset.values_list("id", "name") if all(t in normalize(title) for t in terms)]
+        return queryset.filter(pk__in=ids)
+
+
+class CharacteristicFilter(BaseFilterSet):
+    category = filters.NumberFilter(method="filter_category", label="Доступные в категории")
+
+    class Meta:
+        model = Characteristic
+        fields = ["category"]
+
+    def filter_category(self, queryset, name, value):
+        return available_in_category(queryset, int(value))

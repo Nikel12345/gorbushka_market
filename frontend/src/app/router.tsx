@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
-import { GuestOnly, RequireAuth } from '@/features/auth'
-import { ShopRoute } from '@/features/seller'
+import { GuestOnly, RequireAuth, RequireStaff } from '@/features/auth'
+import { AboutPage } from '@/pages/about'
 import { CartPage } from '@/pages/cart'
 import { CheckoutPage } from '@/pages/checkout'
 import { HomePage } from '@/pages/home'
@@ -9,12 +9,13 @@ import { OrderDetailsPage, OrdersPage } from '@/pages/orders'
 import { ProductPage } from '@/pages/product'
 import { ProfilePage } from '@/pages/profile'
 import { RegisterPage } from '@/pages/register'
-import { SellerHomePage } from '@/pages/seller-home'
-import { ShopPage } from '@/pages/shop'
+import { CategoriesPage } from '@/pages/seller-categories'
+import { CharacteristicsPage } from '@/pages/seller-characteristics'
+import { GroupPage, GroupsPage } from '@/pages/seller-groups'
 import { SellerOrdersPage } from '@/pages/seller-orders'
-import { ProductCreateDialog, ProductDialog, SellerProductsPage } from '@/pages/seller-products'
+import { ProductEditorPage } from '@/pages/seller-product-editor'
+import { SellerProductsPage } from '@/pages/seller-products'
 import { SellerProfilePage } from '@/pages/seller-profile'
-import { ShopCreatePage } from '@/pages/seller-shop-new'
 import { ShopProfilePage } from '@/pages/seller-shop-profile'
 import { AppLayout } from './layout/AppLayout'
 import { SellerLayout } from './layout/SellerLayout'
@@ -26,7 +27,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'products/:productId', element: <ProductPage /> },
-      { path: 'shops/:shopId', element: <ShopPage /> },
+      { path: 'about', element: <AboutPage /> },
       {
         path: 'login',
         element: (
@@ -85,37 +86,29 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // Кабинет продавца — со своим каркасом (панель + меню справа), без шапки витрины
+  // Админка магазина (только is_staff) — со своим каркасом (панель + меню справа), без шапки витрины.
+  // Витрина (товары, категории, характеристики, группы вариантов) — то, что ведёт менеджер; дальше заказы и профиль.
+  // Магазин один, поэтому его id в адресах нет.
   {
     path: 'seller',
     element: (
-      <RequireAuth>
+      <RequireStaff>
         <SellerLayout />
-      </RequireAuth>
+      </RequireStaff>
     ),
     children: [
-      { index: true, element: <SellerHomePage /> },
-      { path: 'profile', element: <SellerProfilePage /> },
-      // Заказы — общий раздел, магазин выбирается на странице
+      { index: true, element: <Navigate to="products" replace /> },
+      { path: 'products', element: <SellerProductsPage /> },
+      // Добавление и карточка — одна страница-форма
+      { path: 'products/new', element: <ProductEditorPage /> },
+      { path: 'products/:productId', element: <ProductEditorPage /> },
+      { path: 'categories', element: <CategoriesPage /> },
+      { path: 'characteristics', element: <CharacteristicsPage /> },
+      { path: 'groups', element: <GroupsPage /> },
+      { path: 'groups/:groupId', element: <GroupPage /> },
       { path: 'orders', element: <SellerOrdersPage /> },
-      { path: 'shops/new', element: <ShopCreatePage /> },
-      {
-        path: 'shops/:shopId',
-        element: <ShopRoute />,
-        children: [
-          { index: true, element: <Navigate to="products" replace /> },
-          {
-            path: 'products',
-            element: <SellerProductsPage />,
-            // Диалоги поверх списка: у каждого свой URL, список под ними не перезагружается
-            children: [
-              { path: 'new', element: <ProductCreateDialog /> },
-              { path: ':productId', element: <ProductDialog /> },
-            ],
-          },
-          { path: 'profile', element: <ShopProfilePage /> },
-        ],
-      },
+      { path: 'shop', element: <ShopProfilePage /> },
+      { path: 'profile', element: <SellerProfilePage /> },
     ],
   },
 ])

@@ -96,17 +96,6 @@
   min-width: 0;
 }
 
-.product-page__summary {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.product-page__summary > :first-child {
-  flex: 1;
-  min-width: 0;
-}
-
 /* Кратко: первые строки описания */
 .product-page__description {
   display: -webkit-box;
@@ -136,30 +125,6 @@
   color: var(--color-brand-dark);
 }
 
-/* Продавец — на месте логотипа бренда */
-.product-page__seller {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex-shrink: 0;
-  max-width: 40%;
-  margin: 0;
-  font-size: 12px;
-  text-align: right;
-}
-
-.product-page__seller-name:hover {
-  color: var(--color-brand);
-}
-
-.product-page__seller-name {
-  color: inherit;
-  text-decoration: none;
-  font-size: 15px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
 /* Отзывы и прочие пилюли */
 .product-page__badges {
   display: flex;
@@ -176,6 +141,25 @@
   border-radius: var(--radius);
   background: var(--color-surface-muted);
   font-size: 14px;
+}
+
+/* Оценка ведёт к отзывам внизу страницы */
+.product-page__badge--link {
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.product-page__badge--link:hover {
+  background: var(--color-divider);
+}
+
+.product-page__badge--link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .product-page__star {
@@ -292,8 +276,14 @@
   color: var(--color-brand);
 }
 
-/* Варианты товара — место зарезервировано */
+/* Варианты товара: строка на характеристику, значения — ссылки на товары группы */
 .product-page__variants {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.product-page__variant-row {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -304,12 +294,62 @@
   color: var(--color-text-secondary);
 }
 
-.product-page__variants-stub {
-  padding: 12px 14px;
-  border: 1px dashed var(--color-input-border);
+.product-page__variants-title b {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.product-page__variant-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-page__variant {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 2px solid var(--color-input-border);
   border-radius: var(--radius-lg);
-  font-size: 13px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+a.product-page__variant:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.product-page__variant:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.product-page__variant--selected {
+  border-color: var(--color-brand);
+  font-weight: 600;
+}
+
+/* Нет в наличии — приглушённая; такого сочетания нет (ведёт на похожий) — ещё и пунктир */
+.product-page__variant--out,
+.product-page__variant--inexact {
   color: var(--color-text-secondary);
+}
+
+.product-page__variant--inexact {
+  border-style: dashed;
+}
+
+/* Переход на вариант: прежний товар остаётся, пока грузится новый. Тускнеет, только если ждать
+   заметно, а кликать нельзя сразу — чтобы не положить в корзину не тот вариант */
+.product-page[aria-busy='true'] {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.15s 0.15s;
 }
 
 @media (max-width: 1000px) {
@@ -346,17 +386,6 @@
   .product-page__thumbs {
     flex-direction: row;
     overflow-x: auto;
-  }
-
-  .product-page__summary {
-    flex-direction: column-reverse;
-    gap: 12px;
-  }
-
-  .product-page__seller {
-    align-items: flex-start;
-    max-width: none;
-    text-align: left;
   }
 
   .product-page__buy {

@@ -1,0 +1,275 @@
+/* Товар в админке: основное слева, цена и получение справа, панель сохранения внизу */
+
+.product-editor__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.product-editor__main,
+.product-editor__side {
+  min-width: 0;
+}
+
+textarea.ui-input.product-editor__description {
+  min-height: 180px;
+}
+
+.product-editor__count {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.product-editor__variants {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.product-editor__subtitle {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.product-editor__hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.product-editor__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.product-editor__bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+}
+
+.product-editor__status {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--color-success);
+}
+
+.product-editor__status--error {
+  color: var(--color-danger);
+}
+
+/* --- Группа вариантов --- */
+
+.group-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
+}
+
+.group-picker__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.group-picker__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.group-picker__name .category-note {
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.group-picker--error {
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.group-search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-search__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-search__results {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius);
+  list-style: none;
+  transition: opacity 0.15s;
+}
+
+.group-search__results--dimmed {
+  opacity: 0.6;
+}
+
+.group-search__result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-search__result:hover,
+.group-search__result:focus-visible {
+  background: var(--color-surface-muted);
+  outline: none;
+}
+
+.group-search__name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.group-search__axes {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.group-search .ui-button.group-search__create {
+  align-self: flex-start;
+}
+
+/* --- Характеристики: название | значение | убрать --- */
+
+.characteristics-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.characteristics-field__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.characteristics-field__row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 32px;
+  gap: 12px;
+  align-items: center;
+}
+
+.characteristics-field__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* Недоступна в категории товара — её нужно убрать */
+.characteristics-field__row--unavailable .characteristics-field__name {
+  color: var(--color-text-secondary);
+}
+
+/* «вариант» — ось группы: значение обязательно */
+.characteristics-field__axis {
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-light);
+  color: var(--color-brand);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.characteristics-field__remove {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.characteristics-field__remove:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-danger);
+}
+
+.characteristics-field__remove:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+select.ui-input.characteristics-field__add {
+  align-self: flex-start;
+  width: auto;
+  min-width: 240px;
+}
+
+@media (max-width: 1100px) {
+  .product-editor__layout {
+    grid-template-columns: minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 900px) {
+  .product-editor__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .characteristics-field__row {
+    grid-template-columns: minmax(0, 1fr) 32px;
+    gap: 4px 8px;
+  }
+
+  .characteristics-field__name {
+    grid-column: 1 / -1;
+  }
+
+  .product-editor__bar {
+    bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .product-editor__status {
+    flex-basis: 100%;
+  }
+}

@@ -44,7 +44,7 @@ class OrderStatusFixturesMixin(CheckoutFixturesMixin):
 
     def seller_set(self, order, new_status, seller=None):
         self.client.force_login(seller or (self.seller_a if order.shop_id == self.shop_a.id else self.seller_b))
-        url = reverse("seller-order-status", args=[order.shop_id, order.id])
+        url = reverse("admin-order-status", args=[order.id])
         return self.client.post(url, {"status": new_status}, format="json")
 
     def market_set(self, order, new_status, user=None):
@@ -90,7 +90,7 @@ class PickupFlowTests(OrderStatusFixturesMixin, APITestCase):
     def test_list_shows_buttons_for_seller(self):
         self.client.force_login(self.seller_a)
 
-        response = self.client.get(reverse("seller-order-list", args=[self.shop_a.id]))
+        response = self.client.get(reverse("admin-order-list"))
 
         order = next(o for o in response.data["results"] if o["id"] == self.pickup_order.id)
         self.assertEqual(
@@ -113,10 +113,10 @@ class PickupFlowTests(OrderStatusFixturesMixin, APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_other_seller_gets_404(self):
-        response = self.seller_set(self.pickup_order, "confirmed", seller=self.seller_b)
+    def test_not_staff_gets_403(self):
+        response = self.seller_set(self.pickup_order, "confirmed", seller=self.buyer)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_unknown_status_is_validation_error(self):
         response = self.seller_set(self.pickup_order, "lost")
@@ -127,7 +127,7 @@ class PickupFlowTests(OrderStatusFixturesMixin, APITestCase):
     def test_seller_order_detail(self):
         self.client.force_login(self.seller_a)
 
-        response = self.client.get(reverse("seller-order-detail", args=[self.shop_a.id, self.pickup_order.id]))
+        response = self.client.get(reverse("admin-order-detail", args=[self.pickup_order.id]))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], self.pickup_order.id)
@@ -156,10 +156,10 @@ class MarketCourierFlowTests(OrderStatusFixturesMixin, APITestCase):
         self.assertEqual(response.data["code"], "invalid_transition")
 
     def test_market_api_is_for_staff_only(self):
-        self.client.force_login(self.seller_a)
+        self.client.force_login(self.buyer)
 
         self.assertEqual(self.client.get(reverse("market-order-list")).status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(self.market_set(self.courier_a, "completed", user=self.seller_a).status_code, 403)
+        self.assertEqual(self.market_set(self.courier_a, "completed", user=self.buyer).status_code, 403)
 
     def test_market_list_contains_courier_orders_with_address(self):
         self.client.force_login(self.staff)
@@ -175,7 +175,7 @@ class MarketCourierFlowTests(OrderStatusFixturesMixin, APITestCase):
     def test_seller_does_not_see_buyer_address(self):
         self.client.force_login(self.seller_a)
 
-        response = self.client.get(reverse("seller-order-detail", args=[self.shop_a.id, self.courier_a.id]))
+        response = self.client.get(reverse("admin-order-detail", args=[self.courier_a.id]))
 
         self.assertNotIn("address", response.data["shipment"])
 
@@ -236,7 +236,7 @@ class PaymentOnDeliveryTests(OrderStatusFixturesMixin, APITestCase):
 
     def test_seller_sees_purchase_payment(self):
         self.client.force_login(self.seller_a)
-        url = reverse("seller-order-detail", args=[self.shop_a.id, self.pickup_order.id])
+        url = reverse("admin-order-detail", args=[self.pickup_order.id])
 
         data = self.client.get(url).data
 
@@ -285,7 +285,7 @@ class LegacyOrderTests(CheckoutFixturesMixin, APITestCase):
         self.client.force_login(self.seller_a)
 
         response = self.client.post(
-            reverse("seller-order-status", args=[self.shop_a.id, order.id]), {"status": "confirmed"}, format="json"
+            reverse("admin-order-status", args=[order.id]), {"status": "confirmed"}, format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
@@ -311,7 +311,6 @@ class AdminStatusChangeTests(OrderStatusFixturesMixin, APITestCase):
             "status": new_status,
             "total_amount": order.total_amount,
             "bonus_amount": order.bonus_amount,
-            "commission_amount": order.commission_amount,
             "items-TOTAL_FORMS": "0",
             "items-INITIAL_FORMS": "0",
             "status_changes-TOTAL_FORMS": "0",

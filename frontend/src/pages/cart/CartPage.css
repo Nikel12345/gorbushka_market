@@ -92,7 +92,6 @@
   color: var(--color-brand);
 }
 
-.cart-line__shop,
 .cart-line__unit {
   font-size: 13px;
   color: var(--color-text-secondary);

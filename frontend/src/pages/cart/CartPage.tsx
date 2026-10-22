@@ -42,7 +42,7 @@ export function CartPage() {
     return (
       <EmptyState
         title="В корзине пока пусто"
-        text="Загляните на главную — там все товары магазинов."
+        text="Загляните в каталог на главной."
         action={
           <LinkButton variant="primary" to="/">
             Перейти к покупкам
@@ -144,7 +144,6 @@ function CartLineRow({ line }: { line: CartLine }) {
         <Link to={productUrl} className="cart-line__title">
           {product.title}
         </Link>
-        <span className="cart-line__shop">{product.shop.name}</span>
         <span className="cart-line__unit">{formatPrice(product.price)} / шт.</span>
         {availability && <span className="cart-line__warning">{availability}</span>}
       </div>

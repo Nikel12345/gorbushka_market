@@ -19,7 +19,7 @@ class OrderBuyerSerializer(serializers.ModelSerializer):
 
 
 class ShipmentBriefSerializer(serializers.ModelSerializer):
-    """Доставка заказа: способ и время. Это видят все стороны, в том числе продавец."""
+    """Доставка заказа: способ и время. Это видят все стороны, в том числе магазин."""
 
     delivery_method = DeliveryMethodBriefSerializer(read_only=True)
     slot = serializers.SerializerMethodField()
@@ -113,18 +113,16 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
 
-class SellerOrderSerializer(OrderSerializer):
+class OrderAdminSerializer(OrderSerializer):
     """
-    Продавцу важно, кто купил, оплачено ли (при самовывозе «при получении» деньги
-    берёт он) и что покупатель написал в комментарии.
+    Магазину (админка) важно, кто купил, оплачено ли (при самовывозе «при получении»
+    деньги берёт магазин) и что покупатель написал в комментарии.
     """
 
     buyer = OrderBuyerSerializer(read_only=True)
     # null — у заказов, оформленных до появления покупок
     payment = serializers.SerializerMethodField()
     comment = serializers.SerializerMethodField()
-    # Выручка продавца = сумма заказа − комиссия маркета (бонусную часть доплачивает маркет)
-    seller_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta(OrderSerializer.Meta):
         fields = [
@@ -133,8 +131,6 @@ class SellerOrderSerializer(OrderSerializer):
             "purchase_id",
             "payment",
             "comment",
-            "commission_amount",
-            "seller_amount",
         ]
         read_only_fields = fields
 
@@ -153,14 +149,14 @@ class SellerOrderSerializer(OrderSerializer):
         return order.purchase.comment if order.purchase else ""
 
 
-class MarketOrderSerializer(SellerOrderSerializer):
+class MarketOrderSerializer(OrderAdminSerializer):
     """Маркету (курьеру) — ещё магазин, откуда забрать, и адрес доставки."""
 
     shop = ShopBriefSerializer(read_only=True)
     shipment = ShipmentSerializer(read_only=True, allow_null=True)
 
-    class Meta(SellerOrderSerializer.Meta):
-        fields = [*SellerOrderSerializer.Meta.fields, "shop"]
+    class Meta(OrderAdminSerializer.Meta):
+        fields = [*OrderAdminSerializer.Meta.fields, "shop"]
         read_only_fields = fields
 
 

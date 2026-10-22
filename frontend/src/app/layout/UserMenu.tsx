@@ -67,9 +67,11 @@ export function UserMenu({ user }: { user: User }) {
         <Link to="/profile" className="user-menu__item" onClick={close}>
           Профиль
         </Link>
-        <Link to="/seller" className="user-menu__item" onClick={close}>
-          Кабинет продавца
-        </Link>
+        {user.is_staff && (
+          <Link to="/seller" className="user-menu__item" onClick={close}>
+            Управление магазином
+          </Link>
+        )}
         <button type="button" className="user-menu__item" onClick={handleLogout}>
           Выйти
         </button>
@@ -78,7 +80,7 @@ export function UserMenu({ user }: { user: User }) {
   )
 }
 
-/** Баланс для покупок: всего (деньги + бонусы) и бонусы отдельно. Заморожено — выручка продавца. */
+/** Баланс для покупок: всего (деньги + бонусы) и бонусы отдельно. */
 function BalanceBlock({ balance }: { balance: Balance | null | undefined }) {
   if (balance === null) return <p className="user-menu__balance-error">Не удалось загрузить баланс</p>
   return (
@@ -91,11 +93,6 @@ function BalanceBlock({ balance }: { balance: Balance | null | undefined }) {
         <span className="user-menu__balance-label">Бонусы</span>
         <span className="user-menu__balance-value">{balance ? formatPrice(balance.bonus) : '…'}</span>
       </div>
-      {balance && Number(balance.frozen) > 0 && (
-        <span className="user-menu__balance-note" title="Выручка за заказы, которые ещё не выданы">
-          Заморожено {formatPrice(balance.frozen)}
-        </span>
-      )}
     </div>
   )
 }

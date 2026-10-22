@@ -29,11 +29,11 @@ class CheckoutFixturesMixin:
         self.pickup = DeliveryMethod.objects.get(code="pickup")
         self.courier = DeliveryMethod.objects.get(code="market_courier")
 
-        self.seller_a = User.objects.create_user(email="a@example.com", password="x")
-        self.seller_b = User.objects.create_user(email="b@example.com", password="x")
+        self.seller_a = User.objects.create_user(email="a@example.com", password="x", is_staff=True)
+        self.seller_b = User.objects.create_user(email="b@example.com", password="x", is_staff=True)
         self.buyer = User.objects.create_user(email="buyer@example.com", password="x")
-        self.shop_a = Shop.objects.create(owner=self.seller_a, name="Павильон A", address="1 этаж, A-1")
-        self.shop_b = Shop.objects.create(owner=self.seller_b, name="Павильон B", address="2 этаж, B-7")
+        self.shop_a = Shop.objects.create(name="Павильон A", address="1 этаж, A-1")
+        self.shop_b = Shop.objects.create(name="Павильон B", address="2 этаж, B-7")
 
         self.phone = self.make(self.shop_a, "iPhone 15", "1000.00", [self.pickup, self.courier], quantity=5)
         self.case = self.make(self.shop_a, "Чехол", "150.50", [self.pickup, self.courier])
@@ -42,7 +42,7 @@ class CheckoutFixturesMixin:
         self.client.force_login(self.buyer)
 
     def make(self, shop, title, price, methods, quantity=10):
-        product = Product.objects.create(shop=shop, title=title, price=Decimal(price), quantity=quantity)
+        product = Product.objects.create(shop=shop, title=title, price_usd=Decimal(price), quantity=quantity)
         product.delivery_methods.set(methods)
         return product
 
@@ -111,7 +111,7 @@ class CheckoutPreviewTests(CheckoutFixturesMixin, APITestCase):
     def test_unavailable_items_are_listed_separately_with_reason(self):
         archived = self.make(self.shop_a, "Снят", "10", [self.pickup])
         short = self.make(self.shop_a, "Мало", "10", [self.pickup], quantity=3)
-        no_address_shop = Shop.objects.create(owner=self.seller_b, name="Без адреса")
+        no_address_shop = Shop.objects.create(name="Без адреса")
         pickup_only = self.make(no_address_shop, "Только самовывоз", "10", [self.pickup])
         self.to_cart(self.phone, archived, pickup_only)
         self.to_cart(short, quantity=3)
@@ -134,7 +134,7 @@ class CheckoutPreviewTests(CheckoutFixturesMixin, APITestCase):
         self.assertTrue(response.data["can_checkout"])
 
     def test_own_shop_product_can_be_bought(self):
-        own_shop = Shop.objects.create(owner=self.buyer, name="Мой павильон", address="3 этаж")
+        own_shop = Shop.objects.create(name="Мой павильон", address="3 этаж")
         own = self.make(own_shop, "Свой", "10", [self.pickup])
         self.to_cart(own)
 
@@ -144,7 +144,7 @@ class CheckoutPreviewTests(CheckoutFixturesMixin, APITestCase):
         self.assertTrue(response.data["can_checkout"])
 
     def test_pickup_is_not_offered_when_shop_has_no_address(self):
-        no_address_shop = Shop.objects.create(owner=self.seller_b, name="Без адреса")
+        no_address_shop = Shop.objects.create(name="Без адреса")
         product = self.make(no_address_shop, "Товар", "10", [self.pickup, self.courier])
         self.to_cart(product)
 
@@ -357,7 +357,7 @@ class PlacePurchaseTests(CheckoutFixturesMixin, APITestCase):
 
     def test_total_changed_is_conflict(self):
         self.to_cart(self.phone)
-        Product.objects.filter(pk=self.phone.pk).update(price=Decimal("1100.00"))
+        Product.objects.filter(pk=self.phone.pk).update(price_usd=Decimal("1100.00"))
 
         response = self.checkout(self.choose((self.phone, self.pickup)), "1000.00")
 
@@ -463,13 +463,13 @@ class PurchaseVisibilityTests(CheckoutFixturesMixin, APITestCase):
 
         self.assertEqual({o["purchase_id"] for o in response.data["results"]}, {self.purchase.id})
 
-    def test_seller_sees_only_own_part_with_delivery_but_without_buyer_address(self):
+    def test_admin_sees_orders_with_delivery_but_without_buyer_address(self):
         self.client.force_login(self.seller_a)
 
-        response = self.client.get(reverse("seller-order-list", args=[self.shop_a.id]))
+        response = self.client.get(reverse("admin-order-list"))
 
-        self.assertEqual(response.data["count"], 1)
-        order = response.data["results"][0]
+        self.assertEqual(response.data["count"], 2)
+        order = next(o for o in response.data["results"] if o["items"][0]["product_id"] == self.phone.id)
         self.assertEqual(order["total_amount"], "1000.00")
         self.assertEqual([i["product_id"] for i in order["items"]], [self.phone.id])
         shipment = order["items"][0]["shipment"]

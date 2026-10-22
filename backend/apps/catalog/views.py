@@ -2,23 +2,27 @@ from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, serializers
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.delivery.models import DeliveryMethod
-from apps.shops.mixins import SellerShopMixin
-from apps.shops.models import Shop
+from apps.shops.mixins import ShopAdminMixin
 
 from . import services
-from .filters import ProductFilter
-from .models import Product
+from .categories import CategoryTree
+from .filters import CharacteristicFilter, ProductFilter, ProductGroupFilter
+from .models import Category, Characteristic, Product, ProductGroup
 from .pagination import ProductFeedPagination
 from .serializers import (
+    CategorySerializer,
+    CharacteristicSerializer,
+    CharacteristicValueSerializer,
+    ProductAdminSerializer,
     ProductCardSerializer,
+    ProductGroupSerializer,
     ProductImageSerializer,
     ProductPublicDetailSerializer,
-    SellerProductSerializer,
 )
 
 
@@ -29,74 +33,46 @@ class ProductFilterMixin:
     filterset_class = ProductFilter
 
 
-# --- Кабинет продавца ---
+# --- Админка магазина ---
 
 
-class SellerAllProductsView(ProductFilterMixin, generics.ListAPIView):
-    """
-    Все товары на продаже во всех магазинах продавца — для страницы товаров,
-    где фронт группирует их по магазинам. Отсортированы по магазину (в порядке
-    /seller/shops/), внутри — новые сверху. Фильтры — общий ProductFilter.
-    Без пагинации: отдаётся весь список.
-    """
+class ProductAdminListCreateView(ProductFilterMixin, ShopAdminMixin, generics.ListCreateAPIView):
+    """GET — товары на продаже (те же фильтры, что в ленте), POST — добавить товар в магазин."""
 
-    permission_classes = [IsAuthenticated]
-    serializer_class = SellerProductSerializer
-    pagination_class = None
+    serializer_class = ProductAdminSerializer
 
     def get_queryset(self):
-        return (
-            Product.objects.filter(shop__in=Shop.objects.managed_by(self.request.user))
-            .on_sale()
-            .with_seller_details()
-            .order_by("shop_id", "-created_at", "-id")
-        )
-
-
-class SellerProductListCreateView(ProductFilterMixin, SellerShopMixin, generics.ListCreateAPIView):
-    """GET — товары магазина на продаже (те же фильтры, что в ленте), POST — добавить товар."""
-
-    serializer_class = SellerProductSerializer
-
-    def get_queryset(self):
-        return Product.objects.filter(shop=self.get_shop()).on_sale().with_seller_details()
+        return Product.objects.on_sale().with_admin_details()
 
     def perform_create(self, serializer):
         serializer.save(shop=self.get_shop())
 
 
-class SellerProductDetailView(SellerShopMixin, generics.RetrieveUpdateDestroyAPIView):
-    """
-    GET — товар, PATCH — изменить (JSON или multipart с картинкой), DELETE — снять с продажи.
-    Владение проверяет SellerShopMixin: магазин должен быть managed_by(user),
-    а товар — из этого магазина; иначе 404.
-    """
+class ProductAdminDetailView(ShopAdminMixin, generics.RetrieveUpdateDestroyAPIView):
+    """GET — товар, PATCH — изменить (JSON или multipart с картинкой), DELETE — снять с продажи."""
 
-    serializer_class = SellerProductSerializer
+    serializer_class = ProductAdminSerializer
     http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        return Product.objects.filter(shop=self.get_shop()).on_sale().with_seller_details()
+        return Product.objects.on_sale().with_admin_details()
 
     def perform_destroy(self, instance):
         services.archive_product(instance)
 
 
-class SellerProductMixin(SellerShopMixin):
-    """Для view, вложенных в /seller/shops/<shop_id>/products/<product_id>/... Чужой товар — 404."""
+class ProductAdminMixin(ShopAdminMixin):
+    """Для view, вложенных в /admin/products/<product_id>/... Снятый с продажи товар — 404."""
 
     product_url_kwarg = "product_id"
 
     def get_product(self) -> Product:
         if not hasattr(self, "_product"):
-            self._product = get_object_or_404(
-                Product.objects.filter(shop=self.get_shop()).on_sale(),
-                pk=self.kwargs[self.product_url_kwarg],
-            )
+            self._product = get_object_or_404(Product.objects.on_sale(), pk=self.kwargs[self.product_url_kwarg])
         return self._product
 
 
-class SellerProductImageListCreateView(SellerProductMixin, generics.ListCreateAPIView):
+class ProductImageAdminListCreateView(ProductAdminMixin, generics.ListCreateAPIView):
     """GET — фото товара по порядку, POST — загрузить одно фото (multipart, поле image) в конец."""
 
     serializer_class = ProductImageSerializer
@@ -109,7 +85,7 @@ class SellerProductImageListCreateView(SellerProductMixin, generics.ListCreateAP
         serializer.save(product=self.get_product())
 
 
-class SellerProductImageDetailView(SellerProductMixin, generics.DestroyAPIView):
+class ProductImageAdminDetailView(ProductAdminMixin, generics.DestroyAPIView):
     """DELETE — удалить фото. Если это была обложка, ей станет следующее фото."""
 
     def get_queryset(self):
@@ -123,7 +99,7 @@ class ProductImageOrderSerializer(serializers.Serializer):
     ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)
 
 
-class SellerProductImageOrderView(SellerProductMixin, APIView):
+class ProductImageAdminOrderView(ProductAdminMixin, APIView):
     """PUT {"ids": [...]} — новый порядок всех фото товара, первое станет обложкой."""
 
     def put(self, request, *args, **kwargs):
@@ -131,6 +107,128 @@ class SellerProductImageOrderView(SellerProductMixin, APIView):
         serializer.is_valid(raise_exception=True)
         images = services.reorder_images(self.get_product(), serializer.validated_data["ids"])
         return Response(ProductImageSerializer(images, many=True, context={"request": request}).data)
+
+
+# --- Категории ---
+
+
+class CategoryListMixin:
+    """Все категории плоским списком в порядке дерева: родитель, затем его подкатегории."""
+
+    serializer_class = CategorySerializer
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        tree = CategoryTree.load()
+        context = {**self.get_serializer_context(), "category_tree": tree}
+        categories = [category for category, _ in tree.walk()]
+        return Response(CategorySerializer(categories, many=True, context=context).data)
+
+
+class CategoryAdminListCreateView(CategoryListMixin, generics.ListCreateAPIView):
+    """GET — дерево категорий, POST — новая категория (parent_id — куда; без него — верхний уровень)."""
+
+    permission_classes = [IsAdminUser]
+    queryset = Category.objects.all()
+
+
+class CategoryAdminDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET — категория, PATCH — название, адрес, порядок, перенос (parent_id),
+    DELETE — только пустую (без подкатегорий и товаров на продаже).
+    """
+
+    permission_classes = [IsAdminUser]
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all()
+    http_method_names = ["get", "patch", "delete", "head", "options"]
+
+    def perform_destroy(self, instance):
+        services.delete_category(instance)
+
+
+class CategoryListView(CategoryListMixin, generics.ListAPIView):
+    """Дерево категорий для меню каталога. Товары раздела — лента с ?category=<id>."""
+
+    permission_classes = [AllowAny]
+
+
+# --- Характеристики и группы вариантов (админка магазина) ---
+# Переименование и удаление — в админке Django: значения уже стоят у товаров.
+
+
+class CharacteristicAdminListCreateView(generics.ListCreateAPIView):
+    """
+    GET — характеристики со справочниками значений; ?category=<id> — только доступные
+    товарам этой категории (общие, её и категорий выше). POST — новая характеристика.
+    """
+
+    permission_classes = [IsAdminUser]
+    serializer_class = CharacteristicSerializer
+    pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CharacteristicFilter
+
+    def get_queryset(self):
+        return Characteristic.objects.select_related("category").prefetch_related("values")
+
+
+class CharacteristicAdminDetailView(generics.RetrieveUpdateAPIView):
+    """GET — характеристика, PATCH — название, порядок, категория (перенос не проверяется — см. Characteristic)."""
+
+    permission_classes = [IsAdminUser]
+    serializer_class = CharacteristicSerializer
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return Characteristic.objects.select_related("category").prefetch_related("values")
+
+
+class CharacteristicValueAdminCreateView(generics.CreateAPIView):
+    """POST — новое значение в справочник характеристики («Розовый» для «Цвет»)."""
+
+    permission_classes = [IsAdminUser]
+    serializer_class = CharacteristicValueSerializer
+
+    def get_characteristic(self) -> Characteristic:
+        if not hasattr(self, "_characteristic"):
+            self._characteristic = get_object_or_404(Characteristic, pk=self.kwargs["characteristic_id"])
+        return self._characteristic
+
+    def get_serializer_context(self):
+        return {**super().get_serializer_context(), "characteristic": self.get_characteristic()}
+
+    def perform_create(self, serializer):
+        serializer.save(characteristic=self.get_characteristic())
+
+
+class ProductGroupAdminListCreateView(generics.ListCreateAPIView):
+    """
+    GET — группы вариантов: ?q= — поиск по названию, ?category=<id> — подходящие товарам
+    этой категории (без категории, её и категорий выше). POST — новая группа.
+    """
+
+    permission_classes = [IsAdminUser]
+    serializer_class = ProductGroupSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ProductGroupFilter
+
+    def get_queryset(self):
+        return ProductGroup.objects.select_related("category").prefetch_related("axes")
+
+
+class ProductGroupAdminDetailView(generics.RetrieveUpdateAPIView):
+    """
+    GET — группа, PATCH — название, категория и оси. Товары группы — /admin/products/?group=<id>.
+    Новые оси и категория должны подходить всем товарам группы на продаже, иначе 400.
+    """
+
+    permission_classes = [IsAdminUser]
+    serializer_class = ProductGroupSerializer
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return ProductGroup.objects.select_related("category").prefetch_related("axes")
 
 
 # --- Публичное ---
@@ -155,6 +253,9 @@ class ProductPublicDetailView(generics.RetrieveAPIView):
     serializer_class = ProductPublicDetailSerializer
 
     def get_queryset(self):
-        return Product.objects.on_sale().select_related("shop").prefetch_related(
-            "images", Prefetch("delivery_methods", queryset=DeliveryMethod.objects.active())
+        return (
+            Product.objects.on_sale()
+            .select_related("shop", "category", "group")
+            .prefetch_related("images", Prefetch("delivery_methods", queryset=DeliveryMethod.objects.active()))
+            .with_characteristics()
         )

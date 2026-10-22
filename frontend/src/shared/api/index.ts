@@ -9,17 +9,26 @@ export type { ProductFilterParams } from './productFilters'
 export type { QueryParams } from './query'
 export type { Paginated, CursorPage } from './types'
 export { catalogApi, PRODUCT_SORTS } from './catalog'
-export type { ProductCard, ProductDetail, ProductFeedParams, ProductSort } from './catalog'
+export type {
+  Category,
+  CategoryBrief,
+  ProductCard,
+  ProductCharacteristic,
+  ProductDetail,
+  ProductFeedParams,
+  ProductSort,
+  ProductVariantOption,
+  ProductVariantRow,
+} from './catalog'
 export { fetchHealth } from './health'
 export type { HealthResponse } from './health'
 export { authApi } from './auth'
 export type { User, LoginPayload, RegisterPayload } from './auth'
-export { sellerApi, PRODUCT_PHOTOS_MAX } from './seller'
+export { adminApi, PRODUCT_PHOTOS_MAX } from './admin'
 export type {
   ShopBrief,
   Shop,
   ShopPayload,
-  SellerProfile,
   ProductStatus,
   Product,
   ProductPhoto,
@@ -27,6 +36,15 @@ export type {
   ProductFieldsPayload,
   ProductUpdatePayload,
   ProductListParams,
+  CategoryPayload,
+  Characteristic,
+  CharacteristicBrief,
+  CharacteristicPayload,
+  CharacteristicValue,
+  ProductGroup,
+  ProductGroupBrief,
+  ProductGroupPayload,
+  GroupListParams,
   OrderStatus,
   OrderStatusOption,
   OrderBase,
@@ -35,7 +53,7 @@ export type {
   OrderItem,
   Order,
   OrderListParams,
-} from './seller'
+} from './admin'
 export { cartApi } from './cart'
 export type { Cart, CartLine } from './cart'
 export { deliveryApi } from './delivery'
@@ -57,6 +75,10 @@ export { shopsApi } from './shops'
 export type { ShopPublic } from './shops'
 export { promoApi } from './promo'
 export type { Promo } from './promo'
+export { currencyApi } from './currency'
+export type { UsdRate } from './currency'
+export { reviewsApi, REVIEW_SORTS, REVIEW_TEXT_MAX_LENGTH } from './reviews'
+export type { Review, ReviewSort, ReviewListParams, ReviewPayload } from './reviews'
 export { purchasesApi } from './purchases'
 export type {
   PaymentMethodCode,

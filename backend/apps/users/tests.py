@@ -102,6 +102,14 @@ class LoginLogoutTests(AuthTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_me_tells_whether_admin_is_available(self):
+        customer = User.objects.create_user(email="customer@example.com", password="x")
+        staff = User.objects.create_user(email="staff@example.com", password="x", is_staff=True)
+
+        for user, expected in ((customer, False), (staff, True)):
+            self.client.force_login(user)
+            self.assertIs(self.client.get(reverse("auth-me")).data["is_staff"], expected)
+
     def test_login_is_throttled(self):
         for _ in range(10):
             self.login(password="wrong-password")

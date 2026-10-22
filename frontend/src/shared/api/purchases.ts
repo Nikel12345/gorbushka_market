@@ -1,7 +1,7 @@
 import { apiRequest, type ApiRequestInit } from './client'
 import type { DeliveryMethodBrief } from './delivery'
 import { withQuery } from './query'
-import type { OrderBase, ShopBrief } from './seller'
+import type { OrderBase, ShopBrief } from './admin'
 import type { CursorPage } from './types'
 
 type RequestOptions = Pick<ApiRequestInit, 'signal'>

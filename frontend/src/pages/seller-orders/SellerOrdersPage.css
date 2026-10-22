@@ -1,15 +1,3 @@
-.seller-orders__shop {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.seller-orders__shop .ui-input {
-  width: auto;
-  min-width: 200px;
-}
-
 .seller-orders {
   display: flex;
   flex-direction: column;

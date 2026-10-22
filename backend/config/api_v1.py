@@ -8,11 +8,21 @@ from django.urls import include, path
 urlpatterns = [
     path("", include("apps.core.urls")),
     path("auth/", include("apps.users.urls")),
-    path("catalog/", include("apps.catalog.urls")),
+    path(
+        "catalog/",
+        include(
+            [
+                path("", include("apps.catalog.urls")),
+                path("", include("apps.reviews.urls")),
+                path("", include("apps.recommendations.urls")),
+            ]
+        ),
+    ),
     path("shops/", include("apps.shops.urls")),
     path("delivery/", include("apps.delivery.urls")),
     path("promo/", include("apps.promo.urls")),
-    # Страница текущего пользователя (покупателя). Как и seller/ — маршруты
+    path("currency/", include("apps.currency.urls")),
+    # Страница текущего пользователя (покупателя). Как и admin/ — маршруты
     # собираются из доменных приложений.
     path(
         "me/",
@@ -22,19 +32,21 @@ urlpatterns = [
                 path("", include("apps.wallet.me_urls")),
                 path("", include("apps.orders.me_urls")),
                 path("", include("apps.cart.me_urls")),
+                path("", include("apps.reviews.me_urls")),
             ]
         ),
     ),
     # Сотрудники маркета (сейчас — is_staff): доставка курьером маркета.
     path("market/", include("apps.orders.market_urls")),
-    # Кабинет продавца. Каждое доменное приложение отдаёт свои seller-маршруты.
+    # Админка магазина (сотрудники, is_staff). Каждое доменное приложение отдаёт свои admin-маршруты.
     path(
-        "seller/",
+        "admin/",
         include(
             [
-                path("", include("apps.shops.seller_urls")),
-                path("", include("apps.catalog.seller_urls")),
-                path("", include("apps.orders.seller_urls")),
+                path("", include("apps.shops.admin_urls")),
+                path("", include("apps.catalog.admin_urls")),
+                path("", include("apps.orders.admin_urls")),
+                path("", include("apps.reviews.admin_urls")),
             ]
         ),
     ),

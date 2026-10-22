@@ -24,18 +24,18 @@ export function CartIcon() {
   )
 }
 
-export function SellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="market-nav__icon">
-      <path d="M4 3h16l1.5 6a3 3 0 01-1.5 2.6V21H4v-9.4A3 3 0 012.5 9L4 3zm2 9.9V19h4v-4h4v4h4v-6.1a3 3 0 01-3-1.3 3 3 0 01-3 1.4 3 3 0 01-3-1.4 3 3 0 01-3 1.3z" />
-    </svg>
-  )
-}
-
 export function LoginIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="market-nav__icon">
       <path d="M12 12a4.5 4.5 0 100-9 4.5 4.5 0 000 9zm0 2c-4.7 0-8.5 2.4-8.5 5.3V21h17v-1.7c0-2.9-3.8-5.3-8.5-5.3z" />
+    </svg>
+  )
+}
+
+export function StoreIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="market-nav__icon">
+      <path d="M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z" />
     </svg>
   )
 }

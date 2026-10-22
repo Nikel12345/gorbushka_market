@@ -16,11 +16,11 @@ from .services import OrderLine, create_order
 
 class OrderFixturesMixin:
     def setUp(self):
-        self.seller = User.objects.create_user(email="seller@example.com", password="x")
+        self.seller = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
         self.buyer = User.objects.create_user(email="buyer@example.com", password="x", first_name="Анна")
-        self.shop = Shop.objects.create(owner=self.seller, name="Павильон 12")
-        self.phone = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("1000.00"), quantity=5)
-        self.case = Product.objects.create(shop=self.shop, title="Чехол", price=Decimal("150.50"), quantity=10)
+        self.shop = Shop.objects.create(name="Павильон 12")
+        self.phone = Product.objects.create(shop=self.shop, title="iPhone 15", price_usd=Decimal("1000.00"), quantity=5)
+        self.case = Product.objects.create(shop=self.shop, title="Чехол", price_usd=Decimal("150.50"), quantity=10)
 
 
 class CreateOrderServiceTests(OrderFixturesMixin, TestCase):
@@ -55,7 +55,7 @@ class CreateOrderServiceTests(OrderFixturesMixin, TestCase):
         order = create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.phone.id, 1)])
 
         self.phone.title = "iPhone 15 (уценка)"
-        self.phone.price = Decimal("500.00")
+        self.phone.price_usd = Decimal("500.00")
         self.phone.save()
 
         item = order.items.get()
@@ -87,7 +87,7 @@ class CreateOrderServiceTests(OrderFixturesMixin, TestCase):
         self.assertEqual(ctx.exception.code, "product_unavailable")
 
     def test_product_from_another_shop_cannot_be_ordered(self):
-        other_shop = Shop.objects.create(owner=self.seller, name="Другой")
+        other_shop = Shop.objects.create(name="Другой")
 
         with self.assertRaises(BusinessError) as ctx:
             create_order(buyer=self.buyer, shop=other_shop, lines=[OrderLine(self.phone.id, 1)])
@@ -105,7 +105,7 @@ class SellerOrderHistoryTests(OrderFixturesMixin, APITestCase):
     def setUp(self):
         super().setUp()
         self.client.force_login(self.seller)
-        self.url = reverse("seller-order-list", args=[self.shop.id])
+        self.url = reverse("admin-order-list")
 
     def test_lists_shop_orders_newest_first_with_items(self):
         first = create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.phone.id, 1)])
@@ -137,16 +137,6 @@ class SellerOrderHistoryTests(OrderFixturesMixin, APITestCase):
             ],
         )
 
-    def test_does_not_include_other_shops_orders(self):
-        other_seller = User.objects.create_user(email="other@example.com", password="x")
-        other_shop = Shop.objects.create(owner=other_seller, name="Чужой")
-        other_product = Product.objects.create(shop=other_shop, title="Y", price=Decimal("1"), quantity=1)
-        create_order(buyer=self.buyer, shop=other_shop, lines=[OrderLine(other_product.id, 1)])
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.data["count"], 0)
-
     def test_filter_by_status(self):
         new = create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.phone.id, 1)])
         done = create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.phone.id, 1)])
@@ -162,27 +152,19 @@ class SellerOrderHistoryTests(OrderFixturesMixin, APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_foreign_shop_is_404(self):
-        other_seller = User.objects.create_user(email="other@example.com", password="x")
-        other_shop = Shop.objects.create(owner=other_seller, name="Чужой")
-
-        response = self.client.get(reverse("seller-order-list", args=[other_shop.id]))
-
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
     def test_buyer_cannot_see_shop_history(self):
         self.client.force_login(self.buyer)
 
         response = self.client.get(self.url)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_query_count_does_not_grow_with_orders(self):
         for _ in range(5):
             create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.case.id, 1)])
 
-        # сессия + пользователь + магазин + count + заказы с покупателем + позиции
-        with self.assertNumQueries(6):
+        # сессия + пользователь + count + заказы с покупателем + позиции
+        with self.assertNumQueries(5):
             self.client.get(self.url)
 
 
@@ -213,9 +195,9 @@ class BuyerOrderHistoryTests(OrderFixturesMixin, APITestCase):
     def setUp(self):
         super().setUp()
         self.client.force_login(self.buyer)
-        self.other_shop = Shop.objects.create(owner=self.seller, name="Павильон 40")
+        self.other_shop = Shop.objects.create(name="Павильон 40")
         self.other_product = Product.objects.create(
-            shop=self.other_shop, title="Наушники", price=Decimal("300"), quantity=10
+            shop=self.other_shop, title="Наушники", price_usd=Decimal("300"), quantity=10
         )
 
     def order(self, shop=None, product=None, quantity=1, buyer=None, created_at=None, status_=None):
@@ -343,7 +325,7 @@ class SharedOrderFilterTests(OrderFixturesMixin, APITestCase):
 
     def test_seller_history_supports_same_filters(self):
         self.client.force_login(self.seller)
-        url = reverse("seller-order-list", args=[self.shop.id])
+        url = reverse("admin-order-list")
         new = create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.case.id, 1)])
         done = create_order(buyer=self.buyer, shop=self.shop, lines=[OrderLine(self.case.id, 1)])
         Order.objects.filter(pk=done.pk).update(status=Order.Status.COMPLETED)

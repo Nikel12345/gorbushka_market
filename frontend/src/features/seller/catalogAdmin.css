@@ -1,0 +1,161 @@
+/* Общие куски админки витрины: «Назад», добавление в справочник, группа вариантов */
+
+.seller-back {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.seller-back:hover {
+  color: var(--color-brand);
+}
+
+/* --- Добавить запись справочника одной строкой --- */
+
+.inline-create {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.inline-create__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline-create__row .ui-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Оси группы в её форме --- */
+
+.axes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.axes-field legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.axes-field__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.axes-field__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.axes-field__option:has(input:checked) {
+  border-color: var(--color-brand);
+  background: var(--color-brand-light);
+}
+
+.axes-field__option input {
+  margin: 0;
+  accent-color: var(--color-brand);
+}
+
+.axes-field[aria-invalid='true'] .axes-field__option {
+  border-color: var(--color-danger);
+}
+
+.axes-field .ui-button.axes-field__add {
+  align-self: flex-start;
+}
+
+.axes-field__error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+/* --- Товары группы --- */
+
+.group-products__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.group-products__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.group-products__title a:hover {
+  color: var(--color-brand);
+}
+
+.group-products__image {
+  flex-shrink: 0;
+  width: 40px;
+  border-radius: var(--radius-sm);
+}
+
+.group-products__copy {
+  font-size: 13px;
+  color: var(--color-brand);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.group-products__copy:hover {
+  text-decoration: underline;
+}
+
+/* Недоступная в категории группы ось: отмечена раньше, до смены категории */
+.axes-field__option--unavailable {
+  border-style: dashed;
+  color: var(--color-text-secondary);
+}
+
+/* «нет в категории» у оси группы и у характеристики товара */
+.category-note {
+  font-size: 12px;
+  color: #b25e00;
+}
+
+/* --- Выбор категории --- */
+
+.category-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-select .ui-input {
+  flex: 1;
+  min-width: 0;
+}

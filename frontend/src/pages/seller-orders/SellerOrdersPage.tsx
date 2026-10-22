@@ -1,7 +1,6 @@
 import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
-import { useSeller } from '@/features/seller'
-import { ApiError, getErrorMessage, sellerApi, type Order, type OrderStatus, type Shop } from '@/shared/api'
+import { adminApi, ApiError, getErrorMessage, type Order, type OrderStatus } from '@/shared/api'
 import { parsePage, updateSearchParams, useRequest } from '@/shared/lib'
 import {
   Card,
@@ -31,7 +30,7 @@ const STATUS_TABS: TabItem<StatusFilter>[] = [
 ]
 
 const EMPTY_TEXT: Record<StatusFilter, string> = {
-  all: 'Здесь появятся заказы покупателей вашего магазина.',
+  all: 'Здесь появятся заказы покупателей.',
   new: 'Новых заказов нет — все подтверждены.',
   confirmed: 'Собирать нечего.',
   ready: 'Нет заказов, которые ждут покупателя или курьера.',
@@ -43,49 +42,15 @@ function parseStatus(value: string | null): StatusFilter {
   return STATUS_TABS.some((tab) => tab.value === value) ? (value as StatusFilter) : 'all'
 }
 
-/**
- * /seller/orders — обработка заказов. API отдаёт заказы по одному магазину,
- * поэтому магазин выбирается на странице (?shop=), по умолчанию — текущий.
- */
+/** /seller/orders — обработка заказов: вкладки по статусам, постраничный список. */
 export function SellerOrdersPage() {
-  const { shops, activeShopId } = useSeller()
-  const [searchParams] = useSearchParams()
-  const shop =
-    shops.find((item) => String(item.id) === searchParams.get('shop')) ??
-    shops.find((item) => item.id === activeShopId)
-
-  if (!shop) {
-    return (
-      <>
-        <PageHeader title="Заказы" />
-        <Card>
-          <EmptyState
-            title="Магазинов пока нет"
-            text="Заказы появятся, когда покупатели начнут покупать товары вашего магазина."
-            action={
-              <LinkButton variant="primary" to="/seller/shops/new">
-                Создать магазин
-              </LinkButton>
-            }
-          />
-        </Card>
-      </>
-    )
-  }
-
-  return <ShopOrders shop={shop} />
-}
-
-function ShopOrders({ shop }: { shop: Shop }) {
-  const { shops } = useSeller()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = parsePage(searchParams.get('page'))
   const status = parseStatus(searchParams.get('status'))
 
   const load = useCallback(
-    (signal: AbortSignal) =>
-      sellerApi.listOrders(shop.id, { page, status: status === 'all' ? undefined : status }, { signal }),
-    [shop.id, page, status],
+    (signal: AbortSignal) => adminApi.listOrders({ page, status: status === 'all' ? undefined : status }, { signal }),
+    [page, status],
   )
   const orders = useRequest(load)
   const { mutate } = orders
@@ -103,10 +68,6 @@ function ShopOrders({ shop }: { shop: Shop }) {
 
   function changeStatus(next: StatusFilter) {
     setSearchParams((prev) => updateSearchParams(prev, { status: next === 'all' ? null : next, page: null }))
-  }
-
-  function changeShop(shopId: string) {
-    setSearchParams((prev) => updateSearchParams(prev, { shop: shopId, page: null }))
   }
 
   function goToPage(next: number) {
@@ -145,7 +106,7 @@ function ShopOrders({ shop }: { shop: Shop }) {
       <ul className={orders.status === 'loading' ? 'seller-orders seller-orders--dimmed' : 'seller-orders'}>
         {orders.data.results.map((order) => (
           <li key={order.id}>
-            <SellerOrderCard shopId={shop.id} order={order} onChange={replaceOrder} />
+            <SellerOrderCard order={order} onChange={replaceOrder} />
           </li>
         ))}
       </ul>
@@ -154,24 +115,7 @@ function ShopOrders({ shop }: { shop: Shop }) {
 
   return (
     <>
-      <PageHeader
-        title="Заказы"
-        subtitle={shops.length > 1 ? undefined : shop.name}
-        actions={
-          shops.length > 1 && (
-            <label className="seller-orders__shop">
-              <span className="ui-muted">Магазин</span>
-              <select className="ui-input" value={shop.id} onChange={(event) => changeShop(event.target.value)}>
-                {shops.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )
-        }
-      />
+      <PageHeader title="Заказы" />
 
       <Card flush>
         {orders.status === 'loading' && orders.data && <LinearProgress />}

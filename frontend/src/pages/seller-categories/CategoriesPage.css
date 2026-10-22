@@ -1,0 +1,90 @@
+/* Дерево категорий: строка на категорию, подкатегории с отступом под родителем */
+
+/* Полоска загрузки поверх списка */
+.categories {
+  position: relative;
+}
+
+.categories-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.categories-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px 12px calc(24px + var(--depth, 0) * 28px);
+}
+
+.categories-list__item + .categories-list__item {
+  border-top: 1px solid var(--color-divider);
+}
+
+/* Новый раздел верхнего уровня отделён заметнее */
+.categories-list__item--root + .categories-list__item,
+.categories-list__item + .categories-list__item--root {
+  border-top-color: var(--color-input-border);
+}
+
+.categories-list__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.categories-list__name {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.categories-list__item--root .categories-list__name {
+  font-weight: 600;
+}
+
+.categories-list__meta,
+.categories-list__characteristics {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.categories-list__meta a {
+  color: inherit;
+}
+
+.categories-list__meta a:hover {
+  color: var(--color-brand);
+}
+
+.categories-list__actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.categories-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.categories-dialog__text {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .categories-list__item {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 16px 12px calc(16px + var(--depth, 0) * 16px);
+  }
+
+  .categories-list__actions {
+    margin-left: -12px;
+  }
+}

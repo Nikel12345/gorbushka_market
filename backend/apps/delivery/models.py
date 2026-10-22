@@ -29,9 +29,9 @@ class DeliveryMethod(TimeStampedModel):
 
     class Provider(models.TextChoices):
         # Кто исполняет доставку. От этого зависит, как товары группируются при оформлении:
-        # доставка продавца — в пределах магазина, логистика маркета может объединять магазины.
-        SHOP = "shop", "Продавец"
-        MARKET = "market", "Маркет"
+        # самовывоз — отправка магазина, служба доставки собирает всё в одну отправку.
+        SHOP = "shop", "Магазин"
+        MARKET = "market", "Служба доставки"
 
     code = models.SlugField("код", max_length=50, unique=True)
     name = models.CharField("название", max_length=255)

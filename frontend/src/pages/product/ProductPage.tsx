@@ -3,13 +3,27 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { formatDeliveryTerms } from '@/entities/delivery'
 import { ProductImage } from '@/entities/product'
 import { CartControl } from '@/features/cart'
-import { ApiError, catalogApi, getErrorMessage, type ProductDetail } from '@/shared/api'
-import { formatPrice, pluralize, useRequest } from '@/shared/lib'
+import { ProductReviews, REVIEWS_ANCHOR } from '@/features/product-reviews'
+import {
+  ApiError,
+  catalogApi,
+  getErrorMessage,
+  type ProductDetail,
+  type ProductVariantOption,
+  type ProductVariantRow,
+} from '@/shared/api'
+import { formatPrice, formatRating, pluralize, useRequest } from '@/shared/lib'
 import { EmptyState, ErrorState, LinkButton, Loader } from '@/shared/ui'
+import { BoughtTogether } from './BoughtTogether'
 import './ProductPage.css'
 
-// TODO: заглушки, пока нет отзывов на бэкенде
-const RATING_STUB = { rating: 4.8, reviews: 23 }
+/**
+ * Варианты открываются с заменой записи в истории (иначе «Назад» листал бы их по одному)
+ * и передают дальше, откуда пришли на первый из них.
+ */
+interface ProductLocationState {
+  cameFromApp?: boolean
+}
 
 /** Страница товара для покупателя: /products/:productId */
 export function ProductPage() {
@@ -21,7 +35,7 @@ export function ProductPage() {
   const product = useRequest(load)
 
   // Пришли из ленты — возвращаемся в неё на то же место; открыли по ссылке — на главную
-  const cameFromApp = location.key !== 'default'
+  const cameFromApp = (location.state as ProductLocationState | null)?.cameFromApp ?? location.key !== 'default'
   const back = cameFromApp ? (
     <button type="button" className="product-page__back" onClick={() => navigate(-1)}>
       ← Назад
@@ -40,7 +54,7 @@ export function ProductPage() {
         {notFound ? (
           <EmptyState
             title="Товар не найден"
-            text="Возможно, продавец снял его с продажи."
+            text="Возможно, его сняли с продажи."
             action={<LinkButton to="/">На главную</LinkButton>}
           />
         ) : (
@@ -50,8 +64,10 @@ export function ProductPage() {
     )
   }
 
-  // При смене товара (другой id) старые данные не показываем
-  if (!product.data || product.data.id !== productId) {
+  // При смене товара (другой id) старые данные не показываем. Исключение — переход на его вариант:
+  // пока тот грузится, остаётся прежний товар, чтобы страница не схлопывалась до лоадера
+  const variantIds = product.data?.variants.flatMap((row) => row.options.map((option) => option.product_id))
+  if (!product.data || (product.data.id !== productId && !variantIds?.includes(productId))) {
     return (
       <>
         {back}
@@ -61,6 +77,7 @@ export function ProductPage() {
   }
 
   const p = product.data
+  const switching = p.id !== productId
 
   return (
     <>
@@ -70,27 +87,30 @@ export function ProductPage() {
         <span className="product-page__sku">Артикул {p.id}</span>
       </header>
 
-      <article className="product-page">
-        <Gallery product={p} />
+      <article className="product-page" aria-busy={switching}>
+        {/* key — у варианта свои фото, листать их начинаем с первого */}
+        <Gallery key={p.id} product={p} />
 
         <div className="product-page__info">
-          <div className="product-page__summary">
-            <Summary description={p.description} />
-            <p className="product-page__seller">
-              <span className="ui-muted">Продавец</span>
-              <Link to={`/shops/${p.shop.id}`} className="product-page__seller-name">
-                {p.shop.name}
-              </Link>
-            </p>
-          </div>
+          <Summary description={p.description} />
 
           <div className="product-page__badges">
-            <span className="product-page__badge">
+            <button
+              type="button"
+              className="product-page__badge product-page__badge--link"
+              onClick={() => document.getElementById(REVIEWS_ANCHOR)?.scrollIntoView({ behavior: 'smooth' })}
+            >
               <StarIcon />
-              <b>{RATING_STUB.rating.toLocaleString('ru-RU')}</b>
-              <span className="product-page__badge-sep" />
-              {pluralize(RATING_STUB.reviews, ['отзыв', 'отзыва', 'отзывов'])}
-            </span>
+              {p.reviews_count > 0 ? (
+                <>
+                  <b>{formatRating(p.rating)}</b>
+                  <span className="product-page__badge-sep" />
+                  {pluralize(p.reviews_count, ['отзыв', 'отзыва', 'отзывов'])}
+                </>
+              ) : (
+                'Нет отзывов'
+              )}
+            </button>
           </div>
 
           <div className="product-page__buy">
@@ -116,15 +136,81 @@ export function ProductPage() {
             ))}
           </ul>
 
-          {/* Место под варианты товара (цвет, память и т. п.) — появятся вместе с характеристиками */}
-          <section className="product-page__variants" aria-label="Варианты товара">
-            <span className="product-page__variants-title">Варианты</span>
-            <div className="product-page__variants-stub">Другие варианты этого товара появятся здесь</div>
-          </section>
+          <Variants rows={p.variants} cameFromApp={cameFromApp} />
         </div>
       </article>
+
+      <BoughtTogether productId={p.id} />
+
+      {/* key — отзывы у каждого варианта свои, фильтр и сортировка начинаются заново */}
+      <ProductReviews key={p.id} product={p} onChanged={product.reload} />
     </>
   )
+}
+
+/** Варианты товара: строка на характеристику (цвет, память), значение — ссылка на товар с ним. */
+function Variants({ rows, cameFromApp }: { rows: ProductVariantRow[]; cameFromApp: boolean }) {
+  if (rows.length === 0) return null
+
+  return (
+    <section className="product-page__variants" aria-label="Варианты товара">
+      {rows.map((row) => {
+        const selected = row.options.find((option) => option.selected)
+        return (
+          <div key={row.characteristic_id} className="product-page__variant-row">
+            <span className="product-page__variants-title">
+              {row.name}
+              {selected && (
+                <>
+                  : <b>{selected.value}</b>
+                </>
+              )}
+            </span>
+            <div className="product-page__variant-options">
+              {row.options.map((option) =>
+                option.selected ? (
+                  <span key={option.value_id} className="product-page__variant product-page__variant--selected">
+                    {option.value}
+                  </span>
+                ) : (
+                  <Link
+                    key={option.value_id}
+                    to={`/products/${option.product_id}`}
+                    replace
+                    preventScrollReset
+                    state={{ cameFromApp } satisfies ProductLocationState}
+                    className={variantClassName(option)}
+                    title={variantHint(option)}
+                  >
+                    {option.value}
+                  </Link>
+                ),
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
+function variantClassName(option: ProductVariantOption) {
+  return [
+    'product-page__variant',
+    !option.exact && 'product-page__variant--inexact',
+    !option.in_stock && 'product-page__variant--out',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
+/** Подсказка к кнопке, если откроется не совсем то, что ждёт покупатель */
+function variantHint(option: ProductVariantOption) {
+  const hints = [
+    !option.exact && 'В таком сочетании нет — откроется похожий вариант',
+    !option.in_stock && 'Нет в наличии',
+  ].filter(Boolean)
+  return hints.length > 0 ? hints.join('. ') : undefined
 }
 
 /** Колонка миниатюр + большое фото. Пока у товара одно фото — миниатюра одна. */
@@ -163,7 +249,7 @@ function Gallery({ product: p }: { product: ProductDetail }) {
  * начало описания. «Подробнее» поведёт к полному описанию и характеристикам.
  */
 function Summary({ description }: { description: string }) {
-  if (!description) return <p className="product-page__description ui-muted">Продавец не добавил описание.</p>
+  if (!description) return <p className="product-page__description ui-muted">Описания пока нет.</p>
   return (
     <div>
       <p className="product-page__description">{description}</p>

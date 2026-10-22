@@ -64,7 +64,7 @@ class BalanceApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             response.data,
-            {"balance": "0.00", "available": "0.00", "bonus": "0.00", "frozen": "0.00", "spendable": "0.00"},
+            {"balance": "0.00", "available": "0.00", "bonus": "0.00", "spendable": "0.00"},
         )
         # кошелёк создаётся вместе с пользователем
         self.assertTrue(Wallet.objects.filter(user=self.user).exists())
@@ -77,7 +77,7 @@ class BalanceApiTests(APITestCase):
         self.assertEqual(
             self.client.get(self.url).data,
             # balance — как раньше: реальные деньги; spendable — «для покупок» = доступно + бонусы
-            {"balance": "1500.50", "available": "1500.50", "bonus": "200.00", "frozen": "0.00", "spendable": "1700.50"},
+            {"balance": "1500.50", "available": "1500.50", "bonus": "200.00", "spendable": "1700.50"},
         )
 
     def test_admin_pages_render(self):
@@ -93,23 +93,24 @@ class BalanceApiTests(APITestCase):
 
 class WalletBucketsTests(TestCase):
     def setUp(self):
-        self.seller = User.objects.create_user(email="seller@example.com", password="x")
+        self.other = User.objects.create_user(email="other@example.com", password="x")
         self.buyer = User.objects.create_user(email="buyer@example.com", password="x")
 
-    def test_operation_moves_money_between_buckets_atomically(self):
-        post_operation(kind=WalletOperation.Kind.SALE, entries=[Entry(self.seller, Bucket.FROZEN, Decimal("1000"))])
+    def test_operation_changes_several_buckets_atomically(self):
+        change_balance(user=self.buyer, amount=Decimal("1000"), kind=WalletOperation.Kind.DEPOSIT)
+        change_balance(user=self.buyer, amount=Decimal("200"), kind=WalletOperation.Kind.BONUS, bucket=Bucket.BONUS)
 
         operation = post_operation(
-            kind=WalletOperation.Kind.SALE_RELEASE,
-            entries=[Entry(self.seller, Bucket.FROZEN, Decimal("-1000")), Entry(self.seller, Bucket.AVAILABLE, Decimal("900"))],
-            description="Выручка за заказ #1",
+            kind=WalletOperation.Kind.PAYMENT,
+            entries=[Entry(self.buyer, Bucket.BONUS, Decimal("-200")), Entry(self.buyer, Bucket.AVAILABLE, Decimal("-100"))],
+            description="Оплата покупки #1",
         )
 
-        wallet = get_wallet(self.seller)
-        self.assertEqual((wallet.available, wallet.bonus, wallet.frozen), (Decimal("900"), Decimal("0"), Decimal("0")))
+        wallet = get_wallet(self.buyer)
+        self.assertEqual((wallet.available, wallet.bonus), (Decimal("900"), Decimal("0")))
         self.assertEqual(
             [(e.bucket, e.amount, e.balance_after) for e in operation.entries.order_by("id")],
-            [("frozen", Decimal("-1000.00"), Decimal("0.00")), ("available", Decimal("900.00"), Decimal("900.00"))],
+            [("bonus", Decimal("-200.00"), Decimal("0.00")), ("available", Decimal("-100.00"), Decimal("900.00"))],
         )
 
     def test_any_failing_entry_rolls_back_whole_operation(self):
@@ -129,31 +130,31 @@ class WalletBucketsTests(TestCase):
         change_balance(user=self.buyer, amount=Decimal("300"), kind=WalletOperation.Kind.DEPOSIT)
 
         post_operation(
-            kind=WalletOperation.Kind.PAYMENT,
-            entries=[Entry(self.buyer, Bucket.AVAILABLE, Decimal("-300")), Entry(self.seller, Bucket.FROZEN, Decimal("300"))],
+            kind=WalletOperation.Kind.ADJUSTMENT,
+            entries=[Entry(self.buyer, Bucket.AVAILABLE, Decimal("-300")), Entry(self.other, Bucket.AVAILABLE, Decimal("300"))],
         )
 
         self.assertEqual(get_wallet(self.buyer).available, Decimal("0.00"))
-        self.assertEqual(get_wallet(self.seller).frozen, Decimal("300.00"))
+        self.assertEqual(get_wallet(self.other).available, Decimal("300.00"))
 
-    def test_debt_only_when_allowed_and_only_in_available(self):
+    def test_minus_only_when_allowed_and_only_in_available(self):
         with self.assertRaises(BusinessError):
-            post_operation(kind=WalletOperation.Kind.SALE_RELEASE, entries=[Entry(self.seller, Bucket.AVAILABLE, Decimal("-10"))])
+            post_operation(kind=WalletOperation.Kind.ADJUSTMENT, entries=[Entry(self.other, Bucket.AVAILABLE, Decimal("-10"))])
 
         post_operation(
-            kind=WalletOperation.Kind.SALE_RELEASE,
-            entries=[Entry(self.seller, Bucket.AVAILABLE, Decimal("-10"))],
+            kind=WalletOperation.Kind.ADJUSTMENT,
+            entries=[Entry(self.other, Bucket.AVAILABLE, Decimal("-10"))],
             allow_debt=True,
         )
 
-        wallet = get_wallet(self.seller)
+        wallet = get_wallet(self.other)
         self.assertEqual(wallet.available, Decimal("-10.00"))
-        # долг не уменьшает бонусы и не даёт тратить «в минус»
+        # минус не уменьшает бонусы и не даёт тратить «в минус»
         self.assertEqual(wallet.spendable, Decimal("0.00"))
         with self.assertRaises(BusinessError):
             post_operation(
-                kind=WalletOperation.Kind.SALE_CANCEL,
-                entries=[Entry(self.seller, Bucket.FROZEN, Decimal("-1"))],
+                kind=WalletOperation.Kind.ADJUSTMENT,
+                entries=[Entry(self.other, Bucket.BONUS, Decimal("-1"))],
                 allow_debt=True,
             )
 
@@ -173,7 +174,7 @@ class WalletAdminTests(TestCase):
         self.url = reverse("admin:wallet_wallet_change", args=[self.wallet.id])
 
     def post(self, **values):
-        data = {"available": "0", "bonus": "0", "frozen": "0", "comment": "", **values}
+        data = {"available": "0", "bonus": "0", "comment": "", **values}
         # инлайн журнала — пустой формсет
         data.update({"transactions-TOTAL_FORMS": "0", "transactions-INITIAL_FORMS": "0"})
         return self.client.post(self.url, data)

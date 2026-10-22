@@ -3,17 +3,17 @@
 
 Путь зависит от того, кто исполняет доставку (DeliveryMethod.provider):
 
-Самовывоз из павильона (provider=shop) — всё делает продавец:
+Самовывоз из магазина (provider=shop) — всё делает магазин:
     new → confirmed → ready («готов к выдаче») → completed («выдан»)
 
-Курьер маркета (provider=market) — продавец собирает и передаёт, доставляет маркет:
-    new → confirmed → ready («передан курьеру») → completed («доставлен»; ставит маркет)
+Доставка курьером (provider=market) — магазин собирает и передаёт, доставляет курьер:
+    new → confirmed → ready («передан курьеру») → completed («доставлен»; ставит курьер)
 
-Отмена: продавец — до выдачи (в т.ч. «покупатель не пришёл» для самовывоза),
-покупатель — пока заказ новый, маркет — после передачи курьеру.
+Отмена: магазин — до выдачи (в т.ч. «покупатель не пришёл» для самовывоза),
+покупатель — пока заказ новый, курьер — после передачи ему.
 
 Новый способ доставки, роль курьера, код выдачи и т.п. меняют только TRANSITIONS
-и change_status — API кабинетов остаются прежними.
+и change_status — API админки, покупателя и курьера остаются прежними.
 """
 from django.db import transaction
 from django.db.models import F
@@ -71,8 +71,8 @@ FINAL_STATUSES = {Status.COMPLETED, Status.CANCELLED}
 
 def check_forced_change(order: Order, to: str) -> None:
     """
-    Ручная смена (админка) разрешает любые переходы, кроме выхода из финального
-    статуса: выручка уже выплачена / деньги возвращены, обратного действия нет.
+    Ручная смена (админка Django) разрешает любые переходы, кроме выхода из финального
+    статуса: заказ уже выдан / деньги и остатки возвращены, обратного действия нет.
     """
     if order.status in FINAL_STATUSES and to != order.status:
         raise BusinessError(
@@ -91,10 +91,9 @@ def available_statuses(order: Order, actor: str) -> list[str]:
 def change_status(order: Order, *, to: str, actor: str, user, force: bool = False) -> Order:
     """
     Переводит заказ в статус `to`. Отмена возвращает остатки и заплаченное заранее
-    (orders.payments.refund_order); выдача — выручку продавцу (settle_order).
-    Всё в одной транзакции вместе с записью в журнал.
+    (orders.payments.refund_order). Всё в одной транзакции вместе с записью в журнал.
 
-    force — ручная смена (админка): без таблицы переходов, но с теми же последствиями
+    force — ручная смена (админка Django): без таблицы переходов, но с теми же последствиями
     и без выхода из финального статуса (check_forced_change).
     """
     # Покупку блокируем первой: смены статусов заказов одной покупки идут по очереди,
@@ -105,7 +104,7 @@ def change_status(order: Order, *, to: str, actor: str, user, force: bool = Fals
     # по nullable-стороне LEFT JOIN (purchase и shipment бывают пустыми)
     order = (
         Order.objects.select_for_update(of=("self",))
-        .select_related("purchase", "shop__owner", "shipment__delivery_method")
+        .select_related("purchase", "shipment__delivery_method")
         .get(pk=order.pk)
     )
 
@@ -127,8 +126,6 @@ def change_status(order: Order, *, to: str, actor: str, user, force: bool = Fals
     if to == Status.CANCELLED:
         _return_stock(order)
         payments.refund_order(order)
-    if to == Status.COMPLETED:
-        payments.settle_order(order, provider=provider_of(order))
     if order.purchase_id is not None:
         _sync_payment_status(order.purchase)
     return order

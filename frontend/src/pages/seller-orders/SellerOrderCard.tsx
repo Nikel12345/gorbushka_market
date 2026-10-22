@@ -8,33 +8,32 @@ import {
   statusActionLabel,
 } from '@/entities/order'
 import { ProductImage } from '@/entities/product'
-import { getErrorMessage, sellerApi, type Order, type OrderStatusOption } from '@/shared/api'
+import { adminApi, getErrorMessage, type Order, type OrderStatusOption } from '@/shared/api'
 import { formatDateTime, formatPersonName, formatPrice } from '@/shared/lib'
 import { Button, Chip, FieldError } from '@/shared/ui'
 
 interface SellerOrderCardProps {
-  shopId: number
   order: Order
   onChange: (order: Order) => void
 }
 
-/** Подсказка продавцу: что сделать с заказом сейчас */
+/** Подсказка магазину: что сделать с заказом сейчас */
 function nextStepHint(order: Order): string | null {
   const pickup = orderProvider(order) === 'shop'
   switch (order.status) {
     case 'new':
       return 'Проверьте наличие и подтвердите заказ.'
     case 'confirmed':
-      return pickup ? 'Соберите заказ и отметьте, когда он будет готов к выдаче.' : 'Соберите заказ и передайте курьеру маркета.'
+      return pickup ? 'Соберите заказ и отметьте, когда он будет готов к выдаче.' : 'Соберите заказ и передайте курьеру.'
     case 'ready':
-      return pickup ? 'Ждёт покупателя в павильоне.' : 'Заказ у курьера маркета — доставку отметит маркет.'
+      return pickup ? 'Ждёт покупателя в павильоне.' : 'Заказ у курьера — доставку отметит служба доставки.'
     default:
       return null
   }
 }
 
-/** Заказ в кабинете: доставка, оплата, товары, покупатель и кнопки следующего шага. */
-export function SellerOrderCard({ shopId, order, onChange }: SellerOrderCardProps) {
+/** Заказ в админке: доставка, оплата, товары, покупатель и кнопки следующего шага. */
+export function SellerOrderCard({ order, onChange }: SellerOrderCardProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const [confirmCancel, setConfirmCancel] = useState(false)
@@ -42,7 +41,7 @@ export function SellerOrderCard({ shopId, order, onChange }: SellerOrderCardProp
   const pickup = orderProvider(order) === 'shop'
   const forward = order.available_statuses.filter((option) => option.status !== 'cancelled')
   const cancel = order.available_statuses.find((option) => option.status === 'cancelled')
-  // Самовывоз с оплатой при получении — деньги (за вычетом бонусов) берёт продавец
+  // Самовывоз с оплатой при получении — деньги (за вычетом бонусов) берёт магазин
   const amountDue = Number(order.amount_due)
   const collectPayment = pickup && amountDue > 0 && order.payment?.status === 'unpaid' && order.status !== 'cancelled'
 
@@ -50,7 +49,7 @@ export function SellerOrderCard({ shopId, order, onChange }: SellerOrderCardProp
     setBusy(true)
     setError(undefined)
     try {
-      onChange(await sellerApi.changeOrderStatus(shopId, order.id, option.status))
+      onChange(await adminApi.changeOrderStatus(order.id, option.status))
       setConfirmCancel(false)
     } catch (err) {
       setError(getErrorMessage(err))

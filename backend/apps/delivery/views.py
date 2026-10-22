@@ -11,7 +11,7 @@ from .serializers import DeliveryMethodSerializer, DeliverySlotSerializer
 
 
 class DeliveryMethodListView(generics.ListAPIView):
-    """Активные способы доставки: форма товара у продавца, фильтр ленты, справка."""
+    """Активные способы доставки: форма товара в админке, фильтр ленты, справка."""
 
     permission_classes = [AllowAny]
     serializer_class = DeliveryMethodSerializer

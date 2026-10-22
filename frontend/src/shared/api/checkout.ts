@@ -2,7 +2,7 @@ import type { CartLine } from './cart'
 import { apiRequest, type ApiRequestInit } from './client'
 import type { DeliveryMethod, DeliveryMethodBrief } from './delivery'
 import type { PaymentMethodCode, Purchase } from './purchases'
-import type { ShopBrief } from './seller'
+import type { ShopBrief } from './admin'
 
 type RequestOptions = Pick<ApiRequestInit, 'signal'>
 

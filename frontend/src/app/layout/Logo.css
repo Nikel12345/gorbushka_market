@@ -1,40 +1,55 @@
+/*
+ * Логотип ТЦ «Горбушка» вёрсткой: красный градиент, мелкое «торговый центр» и «горбушка» —
+ * белый узкий сверхжирный шрифт с жёсткой тенью. Размеры — в em от высоты плашки:
+ * её задаёт font-size, шапка может его поменять.
+ */
 .app-logo {
   display: inline-flex;
+  flex-direction: column;
   flex-shrink: 0;
-  align-items: center;
-  gap: 10px;
-  color: var(--color-text);
+  align-items: flex-start;
+  justify-content: center;
+  height: 1em;
+  /* Снизу чуть больше: у строчных хвосты «р» и «у», текст — немного выше середины */
+  padding: 0 0.3em 0.06em;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, #d05943, #b61f24);
+  color: #fff;
+  font-size: 52px;
+  line-height: 1;
+  white-space: nowrap;
   text-decoration: none;
 }
 
-.app-logo__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--color-brand);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
+.app-logo:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
 }
 
-.app-logo__text {
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: -0.6px;
-  line-height: 1;
-}
-
-.app-logo__light {
-  margin-left: 3px;
+/* Кончается до хвостика «б», как на оригинале */
+.app-logo__caption {
+  font-family: var(--font-family);
+  font-size: 0.115em;
   font-weight: 500;
-  color: var(--color-brand);
+  letter-spacing: 0.01em;
+}
+
+/* Шрифт подключён в index.html только с буквами этого слова */
+.app-logo__name {
+  font-family: 'Fira Sans Extra Condensed', Impact, 'Arial Narrow', sans-serif;
+  font-size: 0.7em;
+  font-weight: 900;
+  /* Подпись — сразу над строчными буквами, хвостик «б» поднимается рядом с ней */
+  margin-top: -0.2em;
+  text-shadow: 0.035em 0.035em 0 #1c1010;
+}
+
+.seller-bar .app-logo {
+  font-size: 42px;
 }
 
 @media (max-width: 720px) {
-  .app-logo__light {
-    display: none;
+  .app-logo {
+    font-size: 40px;
   }
 }

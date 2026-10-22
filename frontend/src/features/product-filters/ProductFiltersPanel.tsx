@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import type { FieldErrors, ProductFilterParams } from '@/shared/api'
+import type { Category, FieldErrors, ProductFilterParams } from '@/shared/api'
 import { Button, FieldError } from '@/shared/ui'
 import { countActiveFilters, normalizePrice } from './model'
 import './ProductFiltersPanel.css'
@@ -42,12 +42,14 @@ interface ProductFiltersPanelProps {
   showSearch?: boolean
   /** Продавцу нужен вариант «Нет в наличии», покупателю — нет */
   stockOptions?: 'buyer' | 'seller'
+  /** Дерево категорий для выбора (плоский список, как отдаёт API); нет — без выбора категории */
+  categories?: Category[]
 }
 
 /**
  * Панель фильтров товаров. Только форма: не знает ни про API, ни про страницу.
  * Где стоит и как грузятся товары — решает страница (см. useProductFilters).
- * Текстовые поля применяются кнопкой/Enter, наличие — сразу.
+ * Текстовые поля применяются кнопкой/Enter, наличие и категория — сразу.
  */
 export function ProductFiltersPanel({
   value,
@@ -55,6 +57,7 @@ export function ProductFiltersPanel({
   errors,
   showSearch = true,
   stockOptions = 'buyer',
+  categories,
 }: ProductFiltersPanelProps) {
   const id = useId()
   const [draft, setDraft] = useState(() => toDraft(value))
@@ -73,7 +76,9 @@ export function ProductFiltersPanel({
   const allErrors = { ...errors, ...localErrors }
   const priceErrors = [...(allErrors.price_min ?? []), ...(allErrors.price_max ?? [])]
 
-  function apply(inStock: boolean | undefined) {
+  /** Применить поля ввода вместе с тем, что выбрано сразу (наличие, категория) */
+  function apply(changes: Pick<ProductFilterParams, 'in_stock' | 'category'> = {}) {
+    const instant = { in_stock: value.in_stock, category: value.category, ...changes }
     const priceMin = normalizePrice(draft.price_min)
     const priceMax = normalizePrice(draft.price_max)
 
@@ -91,13 +96,14 @@ export function ProductFiltersPanel({
       q: draft.q.trim() || undefined,
       price_min: priceMin || undefined,
       price_max: priceMax || undefined,
-      in_stock: inStock,
+      in_stock: instant.in_stock,
+      category: instant.category,
     })
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    apply(value.in_stock)
+    apply()
   }
 
   function handleReset() {
@@ -146,6 +152,29 @@ export function ProductFiltersPanel({
           </div>
         )}
 
+        {categories && (
+          <div className="product-filters__group">
+            <label className="product-filters__label" htmlFor={`${id}-category`}>
+              Категория
+            </label>
+            <select
+              id={`${id}-category`}
+              className="ui-input"
+              value={value.category ?? ''}
+              onChange={(event) => apply({ category: event.target.value ? Number(event.target.value) : undefined })}
+              aria-invalid={Boolean(allErrors.category)}
+            >
+              <option value="">Все категории</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {`${'\u00a0'.repeat(4 * category.depth)}${category.name}`}
+                </option>
+              ))}
+            </select>
+            <FieldError messages={allErrors.category} />
+          </div>
+        )}
+
         <fieldset className="product-filters__group">
           <legend className="product-filters__label">Цена, ₽</legend>
           <div className="product-filters__range">
@@ -180,7 +209,7 @@ export function ProductFiltersPanel({
                 type="radio"
                 name={`${id}-stock`}
                 checked={toStock(value.in_stock) === option.value}
-                onChange={() => apply(fromStock(option.value))}
+                onChange={() => apply({ in_stock: fromStock(option.value) })}
               />
               {option.label}
             </label>

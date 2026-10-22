@@ -19,9 +19,9 @@ class CartTestCase(APITestCase):
     def setUp(self):
         seller = User.objects.create_user(email="seller@example.com", password="x")
         self.buyer = User.objects.create_user(email="buyer@example.com", password="x")
-        self.shop = Shop.objects.create(owner=seller, name="Павильон 12")
-        self.phone = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("1000.00"), quantity=5)
-        self.case = Product.objects.create(shop=self.shop, title="Чехол", price=Decimal("150.50"), quantity=10)
+        self.shop = Shop.objects.create(name="Павильон 12")
+        self.phone = Product.objects.create(shop=self.shop, title="iPhone 15", price_usd=Decimal("1000.00"), quantity=5)
+        self.case = Product.objects.create(shop=self.shop, title="Чехол", price_usd=Decimal("150.50"), quantity=10)
         self.client.force_login(self.buyer)
 
     def item_url(self, product):
@@ -88,7 +88,7 @@ class CartReadTests(CartTestCase):
 
     def test_cart_shows_current_price(self):
         self.add(self.phone)
-        self.phone.price = Decimal("900.00")
+        self.phone.price_usd = Decimal("900.00")
         self.phone.save()
 
         self.assertEqual(self.client.get(self.cart_url).data["total_amount"], "900.00")
@@ -104,7 +104,7 @@ class CartReadTests(CartTestCase):
 
     def test_constant_query_count(self):
         products = [
-            Product.objects.create(shop=self.shop, title=f"P{i}", price=Decimal("1"), quantity=5) for i in range(10)
+            Product.objects.create(shop=self.shop, title=f"P{i}", price_usd=Decimal("1"), quantity=5) for i in range(10)
         ]
         for product in products:
             self.add(product)
@@ -140,9 +140,9 @@ class CartAddTests(CartTestCase):
 
     def test_cannot_add_archived_out_of_stock_or_unknown_product(self):
         archived = Product.objects.create(
-            shop=self.shop, title="A", price=Decimal("1"), status=Product.Status.ARCHIVED
+            shop=self.shop, title="A", price_usd=Decimal("1"), status=Product.Status.ARCHIVED
         )
-        sold_out = Product.objects.create(shop=self.shop, title="B", price=Decimal("1"), quantity=0)
+        sold_out = Product.objects.create(shop=self.shop, title="B", price_usd=Decimal("1"), quantity=0)
 
         cases = [
             (archived.id, "product_unavailable"),
@@ -172,7 +172,7 @@ class CartAddTests(CartTestCase):
         CartItem.objects.bulk_create(
             CartItem(
                 cart=cart,
-                product=Product.objects.create(shop=self.shop, title=f"P{i}", price=Decimal("1")),
+                product=Product.objects.create(shop=self.shop, title=f"P{i}", price_usd=Decimal("1")),
                 quantity=1,
             )
             for i in range(MAX_CART_POSITIONS)

@@ -1,11 +1,4 @@
-from django.db import transaction
-
 from .models import Shop
-
-
-@transaction.atomic
-def create_shop(*, owner, name: str, description: str = "", address: str = "") -> Shop:
-    return Shop.objects.create(owner=owner, name=name, description=description, address=address)
 
 
 def update_shop(shop: Shop, **fields) -> Shop:

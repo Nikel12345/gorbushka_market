@@ -9,7 +9,7 @@ import './OrdersPage.css'
 
 /**
  * Заказы покупателя: /orders. Одна карточка — одна покупка (оформлена одной кнопкой),
- * внутри — части по магазинам со своими статусами. Клик — подробности.
+ * внутри — её части со своими статусами (обычно одна). Клик — подробности.
  */
 export function OrdersPage() {
   const navigationType = useNavigationType()
@@ -83,7 +83,6 @@ function PurchaseCard({ purchase }: { purchase: Purchase }) {
       <ul className="purchase-card__orders">
         {purchase.orders.map((order) => (
           <li key={order.id} className="purchase-card__order">
-            <span className="purchase-card__shop">{order.shop.name}</span>
             <Chip tone={ORDER_STATUS_TONE[order.status]}>{order.status_display}</Chip>
             <ul className="purchase-card__thumbs">
               {order.items.map((item) => (

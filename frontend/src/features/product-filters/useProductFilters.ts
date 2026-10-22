@@ -5,7 +5,7 @@ import { updateSearchParams } from '@/shared/lib'
 import { countActiveFilters, parseProductFilters, productFiltersToSearch } from './model'
 
 /**
- * Фильтры товаров в URL (?q=&price_min=&price_max=&in_stock=): ссылкой можно поделиться,
+ * Фильтры товаров в URL (?q=&price_min=&price_max=&in_stock=&category=): ссылкой можно поделиться,
  * «назад» работает. Смена фильтров сбрасывает ?page.
  */
 export function useProductFilters() {

@@ -7,9 +7,11 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """is_staff — сотрудник магазина: ему доступна админка (/admin/...)."""
+
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "date_joined"]
+        fields = ["id", "email", "first_name", "last_name", "is_staff", "date_joined"]
         read_only_fields = fields
 
 

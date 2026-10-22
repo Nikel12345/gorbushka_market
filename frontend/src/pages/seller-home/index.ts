@@ -1,1 +1,0 @@
-export { SellerHomePage } from './SellerHomePage'

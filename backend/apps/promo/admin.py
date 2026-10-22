@@ -8,12 +8,11 @@ from .models import Promo
 
 @admin.register(Promo)
 class PromoAdmin(admin.ModelAdmin):
-    list_display = ("title", "preview", "placement", "shop", "position", "is_active", "starts_at", "ends_at")
+    list_display = ("title", "preview", "placement", "url", "position", "is_active", "starts_at", "ends_at")
     list_display_links = ("title", "preview")
     list_editable = ("position", "is_active")
     list_filter = ("placement", "is_active")
-    search_fields = ("title", "url", "shop__name")
-    raw_id_fields = ("shop",)
+    search_fields = ("title", "url")
     readonly_fields = ("preview", "created_at", "updated_at")
 
     @admin.display(description="картинка")

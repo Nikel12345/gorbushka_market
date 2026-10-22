@@ -65,7 +65,7 @@ export function OrderDetailsPage() {
       <div className="order-details">
         <div className="order-details__main">
           {p.orders.map((order) => (
-            <ShopOrder key={order.id} order={order} />
+            <OrderPart key={order.id} order={order} />
           ))}
 
           <section className="order-section">
@@ -108,21 +108,15 @@ export function OrderDetailsPage() {
   )
 }
 
-/** Часть заказа от одного магазина: статус и позиции */
-function ShopOrder({ order }: { order: BuyerOrder }) {
+/** Часть заказа со своим статусом и позициями. Обычно одна; несколько — у заказов времён маркетплейса. */
+function OrderPart({ order }: { order: BuyerOrder }) {
   return (
     <section className="order-section">
       <div className="order-section__head">
-        <h2 className="order-section__title">
-          <Link to={`/shops/${order.shop.id}`} className="order-section__shop">
-            {order.shop.name}
-          </Link>
-        </h2>
+        <h2 className="order-section__title">Товары</h2>
         <Chip tone={ORDER_STATUS_TONE[order.status]}>{order.status_display}</Chip>
       </div>
-      <span className="order-section__meta">
-        Заказ магазина №{order.id} · обновлён {formatDateTime(order.updated_at)}
-      </span>
+      <span className="order-section__meta">Обновлён {formatDateTime(order.updated_at)}</span>
 
       <ul className="order-items">
         {order.items.map((item) => (
@@ -144,7 +138,7 @@ function ShopOrder({ order }: { order: BuyerOrder }) {
         ))}
       </ul>
       <div className="order-section__total">
-        <span>Сумма заказа магазина</span>
+        <span>Сумма</span>
         <span>{formatPrice(order.total_amount)}</span>
       </div>
     </section>
@@ -163,12 +157,6 @@ function ShipmentRow({ shipment, orders }: { shipment: Shipment; orders: BuyerOr
         <span>{formatDeliveryPrice(shipment.price)}</span>
       </div>
       <dl className="order-shipment__props">
-        {shipment.shop && (
-          <>
-            <dt>Магазин</dt>
-            <dd>{shipment.shop.name}</dd>
-          </>
-        )}
         {shipment.address && (
           <>
             <dt>{isPickup ? 'Где забрать' : 'Адрес'}</dt>

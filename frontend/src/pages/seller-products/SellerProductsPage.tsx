@@ -1,9 +1,9 @@
-import { useCallback, useMemo } from 'react'
-import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useCallback } from 'react'
+import { useSearchParams } from 'react-router'
 import { ProductTile } from '@/entities/product'
 import { getProductFilterErrors, ProductFiltersPanel, useProductFilters } from '@/features/product-filters'
-import { useCurrentShop } from '@/features/seller'
-import { ApiError, getErrorMessage, sellerApi } from '@/shared/api'
+import { useCategories } from '@/features/seller'
+import { adminApi, ApiError, getErrorMessage } from '@/shared/api'
 import { formatDate, parsePage, pluralize, updateSearchParams, useRequest } from '@/shared/lib'
 import {
   Button,
@@ -17,50 +17,26 @@ import {
   Pagination,
   SidebarLayout,
 } from '@/shared/ui'
-import type { ProductsOutletContext } from './outletContext'
 import './SellerProductsPage.css'
 
 const PRODUCT_WORDS: [string, string, string] = ['товар', 'товара', 'товаров']
 
-/** Товары магазина на продаже: фильтры слева, сетка справа. Карточка и добавление — вложенные маршруты-диалоги. */
+/**
+ * Товары магазина на продаже: фильтры слева, сетка справа. Карточка товара и добавление — отдельные
+ * страницы (pages/seller-product-editor); «Назад» оттуда возвращает сюда с теми же фильтрами.
+ */
 export function SellerProductsPage() {
-  const shop = useCurrentShop()
-  const navigate = useNavigate()
-  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = parsePage(searchParams.get('page'))
   const { filters, setFilters, resetFilters, activeCount } = useProductFilters()
-  const listPath = `/seller/shops/${shop.id}/products`
+  const categories = useCategories()
 
   const load = useCallback(
-    (signal: AbortSignal) => sellerApi.listProducts(shop.id, { page, ...filters }, { signal }),
-    [shop.id, page, filters],
+    (signal: AbortSignal) => adminApi.listProducts({ page, ...filters }, { signal }),
+    [page, filters],
   )
   const products = useRequest(load)
   const { reload } = products
-  const resultsOnPage = products.data?.results.length ?? 0
-
-  const outletContext = useMemo<ProductsOutletContext>(
-    () => ({
-      closeDialog: () => navigate({ pathname: listPath, search: location.search }),
-      onProductCreated: () => {
-        // Новые товары идут первыми — показываем первую страницу без фильтров
-        navigate(listPath)
-        reload()
-      },
-      onProductUpdated: reload,
-      onProductArchived: () => {
-        // Сняли последний товар на странице — отступаем на страницу назад
-        const search =
-          resultsOnPage <= 1 && page > 1
-            ? `?${updateSearchParams(searchParams, { page: page - 1 })}`
-            : location.search
-        navigate({ pathname: listPath, search })
-        reload()
-      },
-    }),
-    [navigate, listPath, location.search, reload, resultsOnPage, page, searchParams],
-  )
 
   function goToPage(next: number) {
     setSearchParams((prev) => updateSearchParams(prev, { page: next > 1 ? next : null }))
@@ -125,7 +101,7 @@ export function SellerProductsPage() {
             <li key={product.id}>
               <ProductTile
                 product={product}
-                to={{ pathname: String(product.id), search: location.search }}
+                to={String(product.id)}
                 badge={!inStock && 'Нет в наличии'}
                 meta={`${inStock ? `${product.quantity} шт.` : 'Нет в наличии'} · ${formatDate(product.created_at)}`}
               />
@@ -136,12 +112,12 @@ export function SellerProductsPage() {
     )
   }
 
-  let subtitle = shop.name
+  let subtitle
   if (products.data) {
-    subtitle +=
+    subtitle =
       activeCount > 0
-        ? ` · найдено ${pluralize(products.data.count, PRODUCT_WORDS)}`
-        : ` · ${pluralize(products.data.count, PRODUCT_WORDS)}`
+        ? `Найдено ${pluralize(products.data.count, PRODUCT_WORDS)}`
+        : pluralize(products.data.count, PRODUCT_WORDS)
   }
 
   return (
@@ -150,7 +126,7 @@ export function SellerProductsPage() {
         title="Товары на продаже"
         subtitle={subtitle}
         actions={
-          <LinkButton variant="primary" to={{ pathname: 'new', search: location.search }}>
+          <LinkButton variant="primary" to="new">
             + Добавить товар
           </LinkButton>
         }
@@ -158,7 +134,13 @@ export function SellerProductsPage() {
 
       <SidebarLayout
         aside={
-          <ProductFiltersPanel value={filters} onChange={setFilters} errors={filterErrors} stockOptions="seller" />
+          <ProductFiltersPanel
+            value={filters}
+            onChange={setFilters}
+            errors={filterErrors}
+            stockOptions="seller"
+            categories={categories.data}
+          />
         }
       >
         <div className="products">
@@ -177,8 +159,6 @@ export function SellerProductsPage() {
           />
         )}
       </SidebarLayout>
-
-      <Outlet context={outletContext} />
     </>
   )
 }

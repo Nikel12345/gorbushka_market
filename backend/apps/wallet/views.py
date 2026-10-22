@@ -7,7 +7,7 @@ from .serializers import BalanceSerializer
 
 
 class BalanceView(APIView):
-    """Части баланса: доступно для вывода, бонусы, заморожено и «для покупок» (доступно + бонусы)."""
+    """Части баланса: доступно для вывода, бонусы и «для покупок» (доступно + бонусы)."""
 
     permission_classes = [IsAuthenticated]
 

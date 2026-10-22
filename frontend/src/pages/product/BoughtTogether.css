@@ -1,0 +1,48 @@
+/* «Часто покупают» между карточкой товара и отзывами: плитки прямо на фоне страницы, как в ленте */
+.bought-together {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.bought-together__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* Топ — до 5 товаров: одна строка; меньше пяти — плитки того же размера, справа пусто */
+.product-grid.bought-together__grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* Узкий экран: строка листается вбок, а не переносится */
+@media (max-width: 1000px) {
+  .product-grid.bought-together__grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(170px, 28%);
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .bought-together__grid > li {
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 600px) {
+  .bought-together {
+    margin-top: 24px;
+  }
+
+  .bought-together__title {
+    font-size: 19px;
+  }
+
+  .product-grid.bought-together__grid {
+    grid-auto-columns: 44%;
+  }
+}

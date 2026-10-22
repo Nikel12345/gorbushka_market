@@ -306,12 +306,6 @@
   white-space: nowrap;
 }
 
-.user-menu__balance-note {
-  grid-column: 1 / -1;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
 .user-menu__balance-error {
   margin: 0 0 6px;
   padding: 8px 12px;
@@ -327,6 +321,36 @@
   max-width: var(--market-width);
   margin: 0 auto;
   padding: 24px 24px 56px;
+}
+
+/* --- Подвал --- */
+
+.market-footer {
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+
+.market-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  max-width: var(--market-width);
+  margin: 0 auto;
+  padding: 20px 24px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.market-footer__link {
+  color: var(--color-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.market-footer__link:hover {
+  color: var(--color-brand);
 }
 
 @media (max-width: 720px) {
@@ -374,5 +398,9 @@
 
   .market-main {
     padding: 12px 12px 40px;
+  }
+
+  .market-footer__inner {
+    padding: 16px 12px;
   }
 }

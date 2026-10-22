@@ -754,3 +754,13 @@ textarea.ui-input {
 .ui-switch--disabled .ui-switch__track {
   opacity: 0.5;
 }
+
+/* Текст только для экранных читалок: подпись, которую на экране заменяет заголовок рядом */
+.ui-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.delivery.models import DeliveryMethod
-from apps.shops.mixins import SellerShopMixin
 
 from . import checkout, statuses
 from .filters import OrderFilter
@@ -18,9 +17,9 @@ from .serializers import (
     CheckoutQuoteRequestSerializer,
     CheckoutRequestSerializer,
     MarketOrderSerializer,
+    OrderAdminSerializer,
     OrderStatusChangeRequestSerializer,
     PurchaseSerializer,
-    SellerOrderSerializer,
 )
 
 Actor = OrderStatusChange.Actor
@@ -35,7 +34,7 @@ class OrderFilterMixin:
 
 class OrderAudienceMixin:
     """
-    Участник, от имени которого смотрят и ведут заказы (продавец, покупатель, маркет).
+    Участник, от имени которого смотрят и ведут заказы (магазин, покупатель, маркет).
     Чьи заказы видны — задаёт get_queryset аудитории; что можно сделать — orders.statuses.
     """
 
@@ -58,29 +57,32 @@ class OrderStatusChangeMixin:
         return Response(self.get_serializer(self.get_queryset().get(pk=order.pk)).data)
 
 
-# --- Кабинет продавца ---
+# --- Админка магазина ---
 
 
-class SellerOrdersMixin(OrderAudienceMixin, SellerShopMixin):
+class OrderAdminMixin(OrderAudienceMixin):
+    """Заказы магазина. Доступ — сотрудники (is_staff), остальным 403. Статусы ведут от имени магазина."""
+
+    permission_classes = [IsAdminUser]
     order_actor = Actor.SELLER
-    serializer_class = SellerOrderSerializer
+    serializer_class = OrderAdminSerializer
 
     def get_queryset(self):
-        return Order.objects.filter(shop=self.get_shop()).with_details()
+        return Order.objects.with_details()
 
 
-class SellerOrderListView(OrderFilterMixin, SellerOrdersMixin, generics.ListAPIView):
+class OrderAdminListView(OrderFilterMixin, OrderAdminMixin, generics.ListAPIView):
     """
     История заказов магазина, новые сверху. Фильтры — OrderFilter.
-    Пагинация постраничная (?page=N): кабинет показывает таблицу со страницами.
+    Пагинация постраничная (?page=N): админка показывает таблицу со страницами.
     """
 
 
-class SellerOrderDetailView(SellerOrdersMixin, generics.RetrieveAPIView):
+class OrderAdminDetailView(OrderAdminMixin, generics.RetrieveAPIView):
     pass
 
 
-class SellerOrderStatusView(OrderStatusChangeMixin, SellerOrdersMixin, generics.GenericAPIView):
+class OrderAdminStatusView(OrderStatusChangeMixin, OrderAdminMixin, generics.GenericAPIView):
     pass
 
 

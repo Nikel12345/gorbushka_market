@@ -9,13 +9,12 @@ class Bucket(models.TextChoices):
 
     AVAILABLE = "available", "Доступно для вывода"
     BONUS = "bonus", "Бонусы"
-    FROZEN = "frozen", "Заморожено"
 
 
 class Wallet(TimeStampedModel):
     """
-    Кошелёк пользователя (и покупателя, и продавца: выручка всех его магазинов
-    приходит сюда). Поля — кеш суммы проводок из WalletTransaction по каждой части;
+    Кошелёк покупателя: баланс и бонусы. Выручка магазина сюда не попадает (приём денег —
+    на стороне платёжки). Поля — кеш суммы проводок из WalletTransaction по каждой части;
     менять их можно только через wallet.services (post_operation / change_balance).
     """
 
@@ -25,20 +24,16 @@ class Wallet(TimeStampedModel):
         related_name="wallet",
         verbose_name="пользователь",
     )
-    # Реальные деньги: можно тратить и выводить. Может уйти в минус только из-за
-    # комиссии маркета по заказам с оплатой при получении — это долг продавца.
+    # Реальные деньги: можно тратить и выводить. В минус уходит только ручной корректировкой в админке.
     available = models.DecimalField("доступно для вывода", max_digits=14, decimal_places=2, default=0)
     # Только на покупки, не выводятся
     bonus = models.DecimalField("бонусы", max_digits=14, decimal_places=2, default=0)
-    # Выручка за невыданные заказы (и, позже, заявки на вывод)
-    frozen = models.DecimalField("заморожено", max_digits=14, decimal_places=2, default=0)
 
     class Meta:
         verbose_name = "кошелёк"
         verbose_name_plural = "кошельки"
         constraints = [
             models.CheckConstraint(condition=models.Q(bonus__gte=0), name="wallet_bonus_non_negative"),
-            models.CheckConstraint(condition=models.Q(frozen__gte=0), name="wallet_frozen_non_negative"),
         ]
 
     def __str__(self):
@@ -46,13 +41,13 @@ class Wallet(TimeStampedModel):
 
     @property
     def spendable(self):
-        """Для покупок: реальные деньги (без долга) + бонусы."""
+        """Для покупок: реальные деньги (без минуса) + бонусы."""
         return max(self.available, 0) + self.bonus
 
 
 class WalletOperation(models.Model):
     """
-    Одно бизнес-событие (оплата покупки, возврат, выручка за заказ...). Состоит из
+    Одно бизнес-событие (оплата покупки, возврат, начисление бонусов...). Состоит из
     проводок по кошелькам и их частям; все проводки операции — в одной транзакции.
     """
 
@@ -63,9 +58,6 @@ class WalletOperation(models.Model):
         REFUND = "refund", "Возврат"
         ADJUSTMENT = "adjustment", "Корректировка"
         BONUS = "bonus", "Начисление бонусов"
-        SALE = "sale", "Выручка за заказ (заморожена)"
-        SALE_RELEASE = "sale_release", "Выручка за выданный заказ"
-        SALE_CANCEL = "sale_cancel", "Отмена выручки"
 
     kind = models.CharField("тип", max_length=20, choices=Kind.choices)
     description = models.CharField("описание", max_length=255, blank=True)

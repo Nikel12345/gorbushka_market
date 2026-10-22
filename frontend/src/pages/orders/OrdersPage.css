@@ -100,11 +100,7 @@
   font-size: 14px;
 }
 
-.purchase-card__shop {
-  font-weight: 600;
-}
-
-/* Фото позиций магазина */
+/* Фото позиций */
 .purchase-card__thumbs {
   display: flex;
   flex-basis: 100%;
@@ -192,15 +188,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.order-section__shop {
-  color: inherit;
-  text-decoration: none;
-}
-
-.order-section__shop:hover {
-  color: var(--color-brand);
 }
 
 .order-section__title {

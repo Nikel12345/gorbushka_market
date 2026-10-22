@@ -1,16 +1,17 @@
-import { NavLink, Outlet, ScrollRestoration } from 'react-router'
+import { Link, NavLink, Outlet, ScrollRestoration } from 'react-router'
 import { useAuth } from '@/features/auth'
 import { useCart } from '@/features/cart'
+import { store } from '@/shared/config'
 import { HeaderSearch } from './HeaderSearch'
 import { Logo } from './Logo'
-import { CartIcon, LoginIcon, OrdersIcon, SellIcon } from './MarketNavIcons'
+import { CartIcon, LoginIcon, OrdersIcon, StoreIcon } from './MarketNavIcons'
 import { UserMenu } from './UserMenu'
 import './AppLayout.css'
 
 const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'market-nav__link market-nav__link--active' : 'market-nav__link'
 
-/** Каркас витрины: шапка с поиском и разделами покупателя. В кабинете продавца — свой каркас. */
+/** Каркас витрины: шапка с поиском и разделами покупателя, подвал с адресом. В админке магазина — свой каркас. */
 export function AppLayout() {
   const { user, status } = useAuth()
   const { itemsCount } = useCart()
@@ -37,9 +38,9 @@ export function AppLayout() {
               </span>
               <span className="market-nav__label">Корзина</span>
             </NavLink>
-            <NavLink to="/seller" className={navLinkClassName}>
-              <SellIcon />
-              <span className="market-nav__label">Продавать</span>
+            <NavLink to="/about" className={navLinkClassName}>
+              <StoreIcon />
+              <span className="market-nav__label">О магазине</span>
             </NavLink>
 
             {status === 'authenticated' && user && <UserMenu user={user} />}
@@ -58,6 +59,16 @@ export function AppLayout() {
       <main className="market-main">
         <Outlet />
       </main>
+      <footer className="market-footer">
+        <div className="market-footer__inner">
+          <span>
+            {store.mall}, {store.address} · ежедневно {store.hours}
+          </span>
+          <Link to="/about" className="market-footer__link">
+            О магазине
+          </Link>
+        </div>
+      </footer>
       {/* Новая страница — сверху, «назад» — на прежнее место (лента на главной) */}
       <ScrollRestoration />
     </div>

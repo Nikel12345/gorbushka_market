@@ -14,6 +14,12 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return children
 }
 
+/** Админка магазина: только сотрудники (is_staff). Гостей — на вход, остальных — на главную. */
+export function RequireStaff({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  return <RequireAuth>{user?.is_staff ? children : <Navigate to="/" replace />}</RequireAuth>
+}
+
 /**
  * Страницы входа/регистрации: авторизованного пользователя уводим туда,
  * откуда его отправил RequireAuth, иначе на главную. Срабатывает и сразу после

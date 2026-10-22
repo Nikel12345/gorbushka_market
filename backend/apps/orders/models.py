@@ -207,10 +207,8 @@ class Order(TimeStampedModel):
     )
     # Сумма товаров магазина (без доставки). Фиксируется при оформлении и дальше не пересчитывается
     total_amount = models.DecimalField("сумма", max_digits=12, decimal_places=2)
-    # Доля бонусов покупки, пришедшаяся на этот заказ (её маркет доплачивает продавцу)
+    # Доля бонусов покупки, пришедшаяся на этот заказ (столько бонусов вернётся при отмене)
     bonus_amount = models.DecimalField("оплачено бонусами", max_digits=12, decimal_places=2, default=0)
-    # Комиссия маркета с этого заказа: считается при оформлении по ставке на тот момент
-    commission_amount = models.DecimalField("комиссия маркета", max_digits=12, decimal_places=2, default=0)
 
     objects = OrderQuerySet.as_manager()
 
@@ -236,11 +234,6 @@ class Order(TimeStampedModel):
         if self.payment_method != Purchase.PaymentMethod.ON_DELIVERY:
             return 0
         return self.total_amount - self.bonus_amount
-
-    @property
-    def seller_amount(self):
-        """Выручка продавца: сумма заказа минус комиссия маркета (бонусную часть доплачивает маркет)."""
-        return self.total_amount - self.commission_amount
 
 
 class OrderItem(models.Model):
@@ -281,10 +274,10 @@ class OrderStatusChange(models.Model):
     """Журнал смены статусов заказа: кто, когда, из какого в какой. Записи только добавляются."""
 
     class Actor(models.TextChoices):
-        SELLER = "seller", "Продавец"
-        MARKET = "market", "Маркет"
+        SELLER = "seller", "Магазин"
+        MARKET = "market", "Курьер"
         BUYER = "buyer", "Покупатель"
-        # Ручная смена в админке: любые переходы из незавершённых статусов
+        # Ручная смена в админке Django: любые переходы из незавершённых статусов
         ADMIN = "admin", "Администратор"
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="status_changes", verbose_name="заказ")

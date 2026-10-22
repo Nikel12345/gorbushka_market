@@ -7,8 +7,6 @@ export interface Balance {
   /** Деньги: можно тратить и выводить */
   available: string
   bonus: string
-  /** Выручка продавца до выдачи заказов */
-  frozen: string
   /** Для покупок: деньги + бонусы */
   spendable: string
 }

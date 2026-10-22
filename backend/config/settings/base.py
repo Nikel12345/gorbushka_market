@@ -44,6 +44,9 @@ LOCAL_APPS = [
     "apps.cart",
     "apps.delivery",
     "apps.promo",
+    "apps.reviews",
+    "apps.recommendations",
+    "apps.currency",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -123,11 +126,18 @@ PRODUCT_IMAGE_MAX_BYTES = env.int("PRODUCT_IMAGE_MAX_MB", default=5) * 1024 * 10
 # Сколько фото может быть у одного товара
 PRODUCT_IMAGES_MAX = env.int("PRODUCT_IMAGES_MAX", default=10)
 
-# Деньги маркета (доли от 0 до 1)
-# Комиссия маркета с выручки продавца по заказу (снимок ставки сохраняется в заказе при оформлении)
-MARKET_COMMISSION_RATE = Decimal(env.str("MARKET_COMMISSION_RATE", default="0"))
-# Какую часть суммы покупки можно оплатить бонусами
+# Какую часть суммы покупки можно оплатить бонусами (доля от 0 до 1)
 BONUS_MAX_SHARE = Decimal(env.str("BONUS_MAX_SHARE", default="0.5"))
+
+# «С этим товаром часто покупают»: пересчитывать сразу после каждой покупки (True)
+# или только командой refresh_bought_together по cron (False). См. apps/recommendations/services.py
+BOUGHT_TOGETHER_ON_PURCHASE = env.bool("BOUGHT_TOGETHER_ON_PURCHASE", default=True)
+
+# Цены товаров хранятся в долларах, покупателю показываются в рублях по курсу ЦБ (apps/currency).
+# USD_RUB_RATE — свой постоянный курс вместо ЦБ; пусто — курс ЦБ на сегодня
+USD_RUB_RATE = Decimal(env.str("USD_RUB_RATE")) if env.str("USD_RUB_RATE", default="") else None
+# До скольки рублей округлять цену: 1 — до рубля, 10 — до десяти рублей, 0.01 — до копейки
+PRICE_RUB_STEP = Decimal(env.str("PRICE_RUB_STEP", default="1"))
 
 
 # Django REST framework

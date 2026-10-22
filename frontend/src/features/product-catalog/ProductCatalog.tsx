@@ -37,31 +37,26 @@ function isPromoRow(row: number): boolean {
 }
 
 interface ProductCatalogProps {
-  /** Только товары этого магазина (страница магазина) */
-  shopId?: number
   /** Заголовок над лентой, когда нет поиска */
   title: ReactNode
   /** Текст, когда товаров нет совсем (без фильтров) */
   emptyText: string
   /** Рекламные полосы между строками */
   withPromo?: boolean
-  /** h1 на главной; на странице магазина h1 — его название */
-  heading?: 'h1' | 'h2'
 }
 
 /**
  * Каталог витрины: фильтры слева, сортировка, бесконечная лента. Фильтры и сортировка — в URL
- * (поиск ?q= — из шапки). Главная и страница магазина.
+ * (поиск ?q= — из шапки).
  */
-export function ProductCatalog({ shopId, title, emptyText, withPromo = false, heading: Heading = 'h1' }: ProductCatalogProps) {
+export function ProductCatalog({ title, emptyText, withPromo = false }: ProductCatalogProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const { filters, setFilters, resetFilters, activeCount } = useProductFilters()
   const sort = parseSort(searchParams.get('sort'))
 
   const load = useCallback(
-    (cursor: string | undefined, signal: AbortSignal) =>
-      catalogApi.feed({ ...filters, shop: shopId, sort, cursor }, { signal }),
-    [filters, shopId, sort],
+    (cursor: string | undefined, signal: AbortSignal) => catalogApi.feed({ ...filters, sort, cursor }, { signal }),
+    [filters, sort],
   )
   // «Назад» со страницы товара — показываем уже загруженную ленту, и ScrollRestoration
   // возвращает прокрутку на ту же плитку. Новые фильтры (переход вперёд) — грузим заново, с начала страницы.
@@ -117,8 +112,6 @@ export function ProductCatalog({ shopId, title, emptyText, withPromo = false, he
                   product={product}
                   to={`/products/${product.id}`}
                   badge={!product.in_stock && 'Нет в наличии'}
-                  // На странице магазина его название у каждой плитки лишнее
-                  meta={shopId ? undefined : product.shop.name}
                   action={<CartControl productId={product.id} variant="compact" canBuy={product.in_stock} />}
                 />
               </li>
@@ -152,12 +145,12 @@ export function ProductCatalog({ shopId, title, emptyText, withPromo = false, he
     <SidebarLayout
       className="catalog-layout"
       aside={
-        // Поиск шапки ищет по всему маркету; на странице магазина — свой поиск по его товарам
-        <ProductFiltersPanel value={filters} onChange={setFilters} errors={filterErrors} showSearch={Boolean(shopId)} />
+        // Поиск — в шапке
+        <ProductFiltersPanel value={filters} onChange={setFilters} errors={filterErrors} showSearch={false} />
       }
     >
       <div className="catalog__toolbar">
-        <Heading className="catalog__title">
+        <h1 className="catalog__title">
           {filters.q ? (
             <>
               Поиск: «{filters.q}»
@@ -168,7 +161,7 @@ export function ProductCatalog({ shopId, title, emptyText, withPromo = false, he
           ) : (
             title
           )}
-        </Heading>
+        </h1>
         <label className="catalog__sort">
           <span className="ui-muted">Сортировка</span>
           <select

@@ -188,10 +188,7 @@ export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) 
                 return (
                   <li key={`${method.id}-${shipment.shop?.id ?? 'market'}`} className="checkout-shipment">
                     <div className="checkout-shipment__head">
-                      <span className="checkout-shipment__name">
-                        {method.name}
-                        {shipment.shop && <span className="ui-muted"> · {shipment.shop.name}</span>}
-                      </span>
+                      <span className="checkout-shipment__name">{method.name}</span>
                       <span className="checkout-shipment__price">{formatDeliveryPrice(shipment.price)}</span>
                     </div>
                     <span className="checkout-shipment__items">{titles.join(', ')}</span>
@@ -345,7 +342,7 @@ function CheckoutItemRow({ item, method, onPick }: CheckoutItemRowProps) {
           {product.title}
         </Link>
         <span className="checkout-item__meta">
-          {product.shop.name} · {item.quantity} шт. × {formatPrice(product.price)}
+          {item.quantity} шт. × {formatPrice(product.price)}
         </span>
         <div className="checkout-options" role="radiogroup" aria-label="Способ получения">
           {item.delivery_methods.map((option) => (

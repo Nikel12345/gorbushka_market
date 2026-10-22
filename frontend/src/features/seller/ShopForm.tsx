@@ -15,7 +15,7 @@ interface ShopFormProps {
 
 const EMPTY: Required<ShopPayload> = { name: '', address: '', description: '' }
 
-/** Название, адрес и описание магазина: создание и профиль магазина. */
+/** Название, адрес и описание магазина (профиль магазина). */
 export function ShopForm({ initial, submitLabel, submittingLabel, onSubmit, successMessage }: ShopFormProps) {
   const [form, setForm] = useState({ ...EMPTY, ...initial })
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -69,7 +69,7 @@ export function ShopForm({ initial, submitLabel, submittingLabel, onSubmit, succ
           placeholder="Например: павильон 2, ряд Б, место 14"
         />
       </Field>
-      <Field label="Описание" errors={errors.description} hint="Необязательно. Покупатели увидят его на странице магазина.">
+      <Field label="Описание" errors={errors.description} hint="Необязательно, покупателям не показывается.">
         <textarea
           className="ui-input"
           value={form.description}

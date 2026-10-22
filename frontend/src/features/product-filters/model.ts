@@ -1,7 +1,7 @@
 import { ApiError, getFieldErrors, type FieldErrors, type ProductFilterParams } from '@/shared/api'
 
 /** Ключи фильтров в URL — совпадают с параметрами API */
-const KEYS = ['q', 'price_min', 'price_max', 'in_stock'] as const
+const KEYS = ['q', 'price_min', 'price_max', 'in_stock', 'category'] as const
 
 export function parseProductFilters(params: URLSearchParams): ProductFilterParams {
   const filters: ProductFilterParams = {}
@@ -13,6 +13,8 @@ export function parseProductFilters(params: URLSearchParams): ProductFilterParam
   if (priceMax) filters.price_max = priceMax
   const inStock = params.get('in_stock')
   if (inStock === 'true' || inStock === 'false') filters.in_stock = inStock === 'true'
+  const category = Number(params.get('category'))
+  if (Number.isInteger(category) && category > 0) filters.category = category
   return filters
 }
 
@@ -23,12 +25,18 @@ export function productFiltersToSearch(filters: ProductFilterParams): Record<str
     price_min: filters.price_min,
     price_max: filters.price_max,
     in_stock: filters.in_stock === undefined ? undefined : String(filters.in_stock),
+    category: filters.category === undefined ? undefined : String(filters.category),
   }
   return Object.fromEntries(KEYS.map((key) => [key, values[key] || null]))
 }
 
 export function countActiveFilters(filters: ProductFilterParams): number {
-  return [filters.q, filters.price_min || filters.price_max, filters.in_stock !== undefined].filter(Boolean).length
+  return [
+    filters.q,
+    filters.price_min || filters.price_max,
+    filters.in_stock !== undefined,
+    filters.category !== undefined,
+  ].filter(Boolean).length
 }
 
 /**

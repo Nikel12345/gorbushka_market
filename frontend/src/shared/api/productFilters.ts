@@ -2,7 +2,7 @@ import type { QueryParams } from './query'
 
 /**
  * Параметры единого ProductFilter бэкенда (backend/apps/catalog/filters.py).
- * Одни и те же для кабинета продавца, ленты на главной и страницы магазина:
+ * Одни и те же для админки магазина и ленты на главной:
  * новый фильтр добавляется здесь и в ProductFilter.
  */
 export interface ProductFilterParams {
@@ -13,6 +13,8 @@ export interface ProductFilterParams {
   price_max?: string
   /** true — только в наличии, false — только отсутствующие, нет — все */
   in_stock?: boolean
+  /** Товары категории вместе с подкатегориями */
+  category?: number
 }
 
 export function productFilterQuery(filters: ProductFilterParams): QueryParams {
@@ -21,5 +23,6 @@ export function productFilterQuery(filters: ProductFilterParams): QueryParams {
     price_min: filters.price_min,
     price_max: filters.price_max,
     in_stock: filters.in_stock === undefined ? undefined : String(filters.in_stock),
+    category: filters.category,
   }
 }

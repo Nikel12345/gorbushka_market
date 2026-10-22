@@ -23,5 +23,5 @@ class FeedPromoView(APIView):
         count = promos.count()
         if not count:
             return Response(status=status.HTTP_204_NO_CONTENT)
-        promo = promos.select_related("shop")[random.randrange(count)]
+        promo = promos[random.randrange(count)]
         return Response(PromoSerializer(promo, context={"request": request}).data)

@@ -1,26 +1,25 @@
-from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser
+
+from apps.core.exceptions import BusinessNotFound
 
 from .models import Shop
 
 
-class SellerShopMixin:
+class ShopAdminMixin:
     """
-    Для view кабинета продавца, вложенных в /seller/shops/<shop_id>/...
-    Чужой или несуществующий магазин — 404, чтобы не раскрывать, что он есть.
+    Для view админки магазина (/admin/...). Доступ — только сотрудники (is_staff),
+    остальным 403. Магазин один: get_shop() отдаёт его, пока не заведён — 404.
     """
 
-    permission_classes = [IsAuthenticated]
-    shop_url_kwarg = "shop_id"
+    permission_classes = [IsAdminUser]
 
     def get_shop(self) -> Shop:
         if not hasattr(self, "_shop"):
-            self._shop = get_object_or_404(
-                Shop.objects.managed_by(self.request.user),
-                pk=self.kwargs[self.shop_url_kwarg],
-            )
+            self._shop = Shop.objects.current()
+            if self._shop is None:
+                raise BusinessNotFound("Магазин ещё не заведён — создайте его в админке.", code="shop_not_found")
         return self._shop
 
     def get_serializer_context(self):
-        # Сериализаторам вложенных view нужен магазин (например, для проверки доступных ему способов доставки)
+        # Сериализаторам нужен магазин (например, для проверки доступных ему способов доставки)
         return {**super().get_serializer_context(), "shop": self.get_shop()}

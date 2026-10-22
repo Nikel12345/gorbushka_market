@@ -16,7 +16,6 @@ from .models import Bucket, Wallet, WalletOperation, WalletTransaction
 MESSAGES = {
     Bucket.AVAILABLE: "Недостаточно средств на балансе.",
     Bucket.BONUS: "Недостаточно бонусов.",
-    Bucket.FROZEN: "Недостаточно замороженных средств.",
 }
 
 
@@ -31,11 +30,10 @@ class Entry:
 class WalletSummary:
     available: Decimal
     bonus: Decimal
-    frozen: Decimal
 
     @property
     def spendable(self) -> Decimal:
-        """Для покупок: реальные деньги (без долга) + бонусы."""
+        """Для покупок: реальные деньги (без минуса) + бонусы."""
         return max(self.available, Decimal("0.00")) + self.bonus
 
     @property
@@ -49,10 +47,10 @@ ZERO = Decimal("0.00")
 
 def get_wallet(user) -> WalletSummary:
     """Балансы без создания кошелька: у пользователя без операций всё по нулям."""
-    wallet = Wallet.objects.filter(user=user).only("available", "bonus", "frozen").first()
+    wallet = Wallet.objects.filter(user=user).only("available", "bonus").first()
     if wallet is None:
-        return WalletSummary(ZERO, ZERO, ZERO)
-    return WalletSummary(wallet.available, wallet.bonus, wallet.frozen)
+        return WalletSummary(ZERO, ZERO)
+    return WalletSummary(wallet.available, wallet.bonus)
 
 
 def get_balance(user) -> Decimal:
@@ -72,7 +70,7 @@ def post_operation(
     Проводит операцию из нескольких проводок. Нулевые проводки пропускаются;
     если не осталось ни одной — операция не создаётся (None).
 
-    allow_debt — разрешить available уйти в минус (долг продавца по комиссии).
+    allow_debt — разрешить available уйти в минус (ручная корректировка в админке).
     """
     entries = [Entry(e.user, e.bucket, Decimal(e.amount)) for e in entries if Decimal(e.amount) != 0]
     if not entries:
@@ -107,7 +105,7 @@ def post_operation(
         )
 
     for wallet in wallets.values():
-        wallet.save(update_fields=["available", "bonus", "frozen", "updated_at"])
+        wallet.save(update_fields=["available", "bonus", "updated_at"])
     WalletTransaction.objects.bulk_create(rows)
     return operation
 
@@ -131,7 +129,7 @@ def adjust_wallet(*, user, deltas: dict[str, Decimal], description: str = "") ->
     """
     Ручная корректировка (админка): изменить части баланса на заданные разницы.
     Проводится обычной операцией — журнал и кеш балансов остаются согласованными.
-    available может уйти в минус (долг), bonus и frozen — нет.
+    available может уйти в минус, bonus — нет.
     """
     return post_operation(
         kind=WalletOperation.Kind.ADJUSTMENT,

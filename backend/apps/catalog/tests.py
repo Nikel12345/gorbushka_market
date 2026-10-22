@@ -22,30 +22,29 @@ def pickup_id():
     return DeliveryMethod.objects.get(code="pickup").id
 
 
-class SellerProductTests(APITestCase):
+class ProductAdminTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(email="seller@example.com", password="x")
+        self.user = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
         self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.user, name="Павильон 12", address="2 этаж, B-12")
-        self.foreign_shop = Shop.objects.create(owner=self.other, name="Чужой")
+        self.shop = Shop.objects.create(name="Павильон 12", address="2 этаж, B-12")
         self.client.force_login(self.user)
 
-    def list_url(self, shop=None):
-        return reverse("seller-product-list", args=[(shop or self.shop).id])
+    def list_url(self):
+        return reverse("admin-product-list")
 
-    def detail_url(self, product, shop=None):
-        return reverse("seller-product-detail", args=[(shop or self.shop).id, product.id])
+    def detail_url(self, product):
+        return reverse("admin-product-detail", args=[product.id])
 
-    def make_product(self, shop=None, **kwargs):
-        defaults = {"title": "iPhone 15", "price": Decimal("79990.00"), "quantity": 3}
-        return Product.objects.create(shop=shop or self.shop, **{**defaults, **kwargs})
+    def make_product(self, **kwargs):
+        defaults = {"title": "iPhone 15", "price_usd": Decimal("79990.00"), "quantity": 3}
+        return Product.objects.create(shop=self.shop, **{**defaults, **kwargs})
 
     # --- create ---
 
     def test_create_product(self):
         response = self.client.post(
             self.list_url(),
-            {"title": "iPhone 15", "description": "128 ГБ", "price": "79990.00", "quantity": 3,
+            {"title": "iPhone 15", "description": "128 ГБ", "price_usd": "79990.00", "quantity": 3,
              "delivery_method_ids": [pickup_id()]},
             format="json",
         )
@@ -59,9 +58,11 @@ class SellerProductTests(APITestCase):
         self.assertEqual(response.data["status"], "active")
 
     def test_create_ignores_status_and_shop_from_request(self):
+        self.other_shop = Shop.objects.create(name="Другой")
+
         response = self.client.post(
             self.list_url(),
-            {"title": "X", "price": "10", "status": "archived", "shop": self.foreign_shop.id,
+            {"title": "X", "price_usd": "10", "status": "archived", "shop": self.other_shop.id,
              "delivery_method_ids": [pickup_id()]},
             format="json",
         )
@@ -74,22 +75,20 @@ class SellerProductTests(APITestCase):
     def test_create_validates_price_and_quantity(self):
         response = self.client.post(
             self.list_url(),
-            {"title": "X", "price": "0", "quantity": -1},
+            {"title": "X", "price_usd": "0", "quantity": -1},
             format="json",
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("price", response.data)
+        self.assertIn("price_usd", response.data)
         self.assertIn("quantity", response.data)
 
-    def test_create_in_foreign_shop_is_404(self):
-        response = self.client.post(
-            self.list_url(self.foreign_shop),
-            {"title": "X", "price": "10"},
-            format="json",
-        )
+    def test_not_staff_cannot_create(self):
+        self.client.force_login(self.other)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = self.client.post(self.list_url(), {"title": "X", "price_usd": "10"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(Product.objects.exists())
 
     def test_requires_authentication(self):
@@ -101,10 +100,9 @@ class SellerProductTests(APITestCase):
 
     # --- list ---
 
-    def test_list_returns_only_active_products_of_shop(self):
+    def test_list_returns_only_active_products(self):
         active = self.make_product(title="Активный")
         self.make_product(title="Удалённый", status=Product.Status.ARCHIVED)
-        self.make_product(shop=self.foreign_shop, title="Чужой")
 
         response = self.client.get(self.list_url())
 
@@ -112,10 +110,12 @@ class SellerProductTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual([p["id"] for p in response.data["results"]], [active.id])
 
-    def test_list_foreign_shop_is_404(self):
-        response = self.client.get(self.list_url(self.foreign_shop))
+    def test_not_staff_list_is_403(self):
+        self.client.force_login(self.other)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        response = self.client.get(self.list_url())
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     # --- delete ---
 
@@ -137,19 +137,25 @@ class SellerProductTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_delete_foreign_product_is_404(self):
-        foreign = self.make_product(shop=self.foreign_shop)
+    def test_not_staff_cannot_delete(self):
+        product = self.make_product()
+        self.client.force_login(self.other)
 
-        # и через чужой магазин, и подставив чужой товар в свой магазин
-        responses = [
-            self.client.delete(self.detail_url(foreign, shop=self.foreign_shop)),
-            self.client.delete(self.detail_url(foreign, shop=self.shop)),
-        ]
+        response = self.client.delete(self.detail_url(product))
 
-        for response in responses:
-            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        foreign.refresh_from_db()
-        self.assertEqual(foreign.status, Product.Status.ACTIVE)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        product.refresh_from_db()
+        self.assertEqual(product.status, Product.Status.ACTIVE)
+
+    def test_create_without_shop_is_404(self):
+        Shop.objects.all().delete()
+
+        response = self.client.post(
+            self.list_url(), {"title": "X", "price_usd": "10", "delivery_method_ids": [pickup_id()]}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["code"], "shop_not_found")
 
     def test_retrieve_product(self):
         product = self.make_product()
@@ -164,12 +170,12 @@ class ProductFeedTests(APITestCase):
     url = reverse("product-feed")
 
     def setUp(self):
-        seller = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=seller, name="Павильон 12")
-        self.other_shop = Shop.objects.create(owner=seller, name="Павильон 40")
+        seller = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        self.shop = Shop.objects.create(name="Павильон 12")
+        self.other_shop = Shop.objects.create(name="Павильон 40")
 
     def make(self, title="Товар", price="100.00", shop=None, **kwargs):
-        return Product.objects.create(shop=shop or self.shop, title=title, price=Decimal(price), **kwargs)
+        return Product.objects.create(shop=shop or self.shop, title=title, price_usd=Decimal(price), **kwargs)
 
     def fetch_all(self, params=None, page_size=2):
         """Проходит всю ленту по курсорам, как это делает бесконечная прокрутка."""
@@ -207,6 +213,8 @@ class ProductFeedTests(APITestCase):
                 "image": None,
                 "in_stock": False,
                 "shop": {"id": self.shop.id, "name": "Павильон 12"},
+                "rating": "0.00",
+                "reviews_count": 0,
             },
         )
         self.assertIn("created_at", card)
@@ -337,12 +345,12 @@ class ProductFeedTests(APITestCase):
 
 class ProductPublicDetailTests(APITestCase):
     def setUp(self):
-        seller = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=seller, name="Павильон 12")
+        seller = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        self.shop = Shop.objects.create(name="Павильон 12")
 
     def test_returns_product(self):
         product = Product.objects.create(
-            shop=self.shop, title="iPhone 15", description="128 ГБ", price=Decimal("10"), quantity=2
+            shop=self.shop, title="iPhone 15", description="128 ГБ", price_usd=Decimal("10"), quantity=2
         )
 
         response = self.client.get(reverse("product-detail", args=[product.id]))
@@ -354,7 +362,7 @@ class ProductPublicDetailTests(APITestCase):
 
     def test_archived_product_is_404(self):
         product = Product.objects.create(
-            shop=self.shop, title="X", price=Decimal("10"), status=Product.Status.ARCHIVED
+            shop=self.shop, title="X", price_usd=Decimal("10"), status=Product.Status.ARCHIVED
         )
 
         response = self.client.get(reverse("product-detail", args=[product.id]))
@@ -362,19 +370,19 @@ class ProductPublicDetailTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
-class SellerProductFiltersTests(APITestCase):
+class ProductAdminFiltersTests(APITestCase):
     """Список товаров в кабинете продавца использует тот же ProductFilter, что и лента."""
 
     def test_seller_list_supports_feed_filters(self):
-        seller = User.objects.create_user(email="seller@example.com", password="x")
-        shop = Shop.objects.create(owner=seller, name="Павильон 12")
-        match = Product.objects.create(shop=shop, title="Чехол", price=Decimal("150"), quantity=0)
-        Product.objects.create(shop=shop, title="Чехол дорогой", price=Decimal("5000"), quantity=0)
-        Product.objects.create(shop=shop, title="Зарядка", price=Decimal("150"), quantity=0)
+        seller = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        shop = Shop.objects.create(name="Павильон 12")
+        match = Product.objects.create(shop=shop, title="Чехол", price_usd=Decimal("150"), quantity=0)
+        Product.objects.create(shop=shop, title="Чехол дорогой", price_usd=Decimal("5000"), quantity=0)
+        Product.objects.create(shop=shop, title="Зарядка", price_usd=Decimal("150"), quantity=0)
         self.client.force_login(seller)
 
         response = self.client.get(
-            reverse("seller-product-list", args=[shop.id]),
+            reverse("admin-product-list"),
             {"q": "ЧЕХОЛ", "price_max": "1000", "in_stock": "false"},
         )
 
@@ -389,22 +397,22 @@ def make_image(name="photo.png", size=(10, 10), fmt="PNG"):
     return SimpleUploadedFile(name, buffer.getvalue(), content_type=f"image/{fmt.lower()}")
 
 
-class SellerProductPatchTests(APITestCase):
+class ProductAdminPatchTests(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.owner = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
         self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
-        self.foreign_shop = Shop.objects.create(owner=self.other, name="Чужой")
+        self.shop = Shop.objects.create(name="Павильон 12")
+        self.other_shop = Shop.objects.create(name="Другой")
         self.product = Product.objects.create(
-            shop=self.shop, title="iPhone 15", description="128 ГБ", price=Decimal("79990"), quantity=3
+            shop=self.shop, title="iPhone 15", description="128 ГБ", price_usd=Decimal("79990"), quantity=3
         )
         self.client.force_login(self.owner)
 
-    def url(self, product=None, shop=None):
-        return reverse("seller-product-detail", args=[(shop or self.shop).id, (product or self.product).id])
+    def url(self, product=None):
+        return reverse("admin-product-detail", args=[(product or self.product).id])
 
     def test_owner_can_patch_fields(self):
-        response = self.client.patch(self.url(), {"price": "74990.00", "quantity": 5}, format="json")
+        response = self.client.patch(self.url(), {"price_usd": "74990.00", "quantity": 5}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["price"], "74990.00")
@@ -420,31 +428,25 @@ class SellerProductPatchTests(APITestCase):
         feed = self.client.get(reverse("product-feed"), {"q": "galaxy"})
         self.assertEqual([p["id"] for p in feed.data["results"]], [self.product.id])
 
-    def test_other_seller_cannot_patch(self):
+    def test_not_staff_cannot_patch(self):
         self.client.force_login(self.other)
 
-        responses = [
-            # через чужой (для него) магазин
-            self.client.patch(self.url(), {"price": "1"}, format="json"),
-            # подставив свой магазин в URL
-            self.client.patch(self.url(shop=self.foreign_shop), {"price": "1"}, format="json"),
-        ]
+        response = self.client.patch(self.url(), {"price_usd": "1"}, format="json")
 
-        for response in responses:
-            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.product.refresh_from_db()
         self.assertEqual(self.product.price, Decimal("79990"))
 
     def test_anonymous_cannot_patch(self):
         self.client.logout()
 
-        response = self.client.patch(self.url(), {"price": "1"}, format="json")
+        response = self.client.patch(self.url(), {"price_usd": "1"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_cannot_change_shop_or_status(self):
         response = self.client.patch(
-            self.url(), {"shop": self.foreign_shop.id, "status": "archived"}, format="json"
+            self.url(), {"shop": self.other_shop.id, "status": "archived"}, format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -453,21 +455,21 @@ class SellerProductPatchTests(APITestCase):
         self.assertEqual(self.product.status, Product.Status.ACTIVE)
 
     def test_validation(self):
-        response = self.client.patch(self.url(), {"price": "0", "quantity": -1, "title": ""}, format="json")
+        response = self.client.patch(self.url(), {"price_usd": "0", "quantity": -1, "title": ""}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(set(response.data), {"price", "quantity", "title"})
+        self.assertEqual(set(response.data), {"price_usd", "quantity", "title"})
 
     def test_archived_product_cannot_be_patched(self):
         self.product.status = Product.Status.ARCHIVED
         self.product.save()
 
-        response = self.client.patch(self.url(), {"price": "1"}, format="json")
+        response = self.client.patch(self.url(), {"price_usd": "1"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_put_is_not_allowed(self):
-        response = self.client.put(self.url(), {"title": "X", "price": "1"}, format="json")
+        response = self.client.put(self.url(), {"title": "X", "price_usd": "1"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -476,7 +478,7 @@ class SellerProductPatchTests(APITestCase):
 
         order = create_order(buyer=self.other, shop=self.shop, lines=[OrderLine(self.product.id, 1)])
 
-        self.client.patch(self.url(), {"price": "1.00", "title": "Новое"}, format="json")
+        self.client.patch(self.url(), {"price_usd": "1.00", "title": "Новое"}, format="json")
 
         item = order.items.get()
         self.assertEqual(item.price, Decimal("79990"))
@@ -485,11 +487,11 @@ class SellerProductPatchTests(APITestCase):
 
 class ProductImageTests(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
-        self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("10"))
+        self.owner = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        self.shop = Shop.objects.create(name="Павильон 12", address="2 этаж, B-12")
+        self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price_usd=Decimal("10"))
         self.client.force_login(self.owner)
-        self.detail_url = reverse("seller-product-detail", args=[self.shop.id, self.product.id])
+        self.detail_url = reverse("admin-product-detail", args=[self.product.id])
 
     def upload(self, image=None):
         return self.client.patch(self.detail_url, {"image": image or make_image()}, format="multipart")
@@ -519,8 +521,8 @@ class ProductImageTests(APITestCase):
 
     def test_create_product_with_image(self):
         response = self.client.post(
-            reverse("seller-product-list", args=[self.shop.id]),
-            {"title": "С фото", "price": "100", "image": make_image(), "delivery_method_ids": [pickup_id()]},
+            reverse("admin-product-list"),
+            {"title": "С фото", "price_usd": "100", "image": make_image(), "delivery_method_ids": [pickup_id()]},
             format="multipart",
         )
 
@@ -563,7 +565,7 @@ class ProductImageTests(APITestCase):
         self.product.refresh_from_db()
         name = self.product.image.name
 
-        self.client.patch(self.detail_url, {"price": "20"}, format="json")
+        self.client.patch(self.detail_url, {"price_usd": "20"}, format="json")
 
         self.product.refresh_from_db()
         self.assertEqual(self.product.image.name, name)
@@ -600,16 +602,16 @@ class ShopPageCursorTests(APITestCase):
     """Листалка товаров на странице магазина = общая лента с ?shop=, курсор работает."""
 
     def test_cursor_walk_within_shop_with_filters_and_sort(self):
-        seller = User.objects.create_user(email="seller@example.com", password="x")
-        shop = Shop.objects.create(owner=seller, name="Павильон 12")
-        other = Shop.objects.create(owner=seller, name="Другой")
+        seller = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        shop = Shop.objects.create(name="Павильон 12")
+        other = Shop.objects.create(name="Другой")
         mine = [
-            Product.objects.create(shop=shop, title=f"Чехол {i}", price=Decimal(price))
+            Product.objects.create(shop=shop, title=f"Чехол {i}", price_usd=Decimal(price))
             for i, price in enumerate(["300", "100", "200", "100", "500"])
         ]
         for i in range(5):
-            Product.objects.create(shop=other, title=f"Чехол {i}", price=Decimal("100"))
-        Product.objects.create(shop=shop, title="Удалённый", price=Decimal("1"), status=Product.Status.ARCHIVED)
+            Product.objects.create(shop=other, title=f"Чехол {i}", price_usd=Decimal("100"))
+        Product.objects.create(shop=shop, title="Удалённый", price_usd=Decimal("1"), status=Product.Status.ARCHIVED)
 
         url = reverse("product-feed")
         for sort, expected in {
@@ -635,21 +637,21 @@ class ShopPageCursorTests(APITestCase):
 
 class ProductDeliveryMethodsTests(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
+        self.owner = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        self.shop = Shop.objects.create(name="Павильон 12", address="2 этаж, B-12")
         self.pickup = DeliveryMethod.objects.get(code="pickup")
         self.courier = DeliveryMethod.objects.get(code="market_courier")
         self.client.force_login(self.owner)
-        self.list_url = reverse("seller-product-list", args=[self.shop.id])
+        self.list_url = reverse("admin-product-list")
 
     def create(self, method_ids, fmt="json", **extra):
-        payload = {"title": "iPhone 15", "price": "100", **extra}
+        payload = {"title": "iPhone 15", "price_usd": "100", **extra}
         if method_ids is not None:
             payload["delivery_method_ids"] = method_ids
         return self.client.post(self.list_url, payload, format=fmt)
 
     def detail_url(self, product):
-        return reverse("seller-product-detail", args=[self.shop.id, product.id])
+        return reverse("admin-product-detail", args=[product.id])
 
     def method_codes(self, data):
         return [m["code"] for m in data["delivery_methods"]]
@@ -707,7 +709,7 @@ class ProductDeliveryMethodsTests(APITestCase):
     def test_patch_without_methods_keeps_them_and_empty_is_rejected(self):
         product = Product.objects.get(pk=self.create([self.pickup.id, self.courier.id]).data["id"])
 
-        self.client.patch(self.detail_url(product), {"price": "200"}, format="json")
+        self.client.patch(self.detail_url(product), {"price_usd": "200"}, format="json")
         self.assertEqual(product.delivery_methods.count(), 2)
 
         response = self.client.patch(self.detail_url(product), {"delivery_method_ids": []}, format="json")
@@ -748,112 +750,26 @@ class ProductDeliveryMethodsTests(APITestCase):
         self.assertEqual(count_queries(), one)
 
 
-class SellerAllProductsTests(APITestCase):
-    url = reverse("seller-all-products")
-
-    def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.shop_a = Shop.objects.create(owner=self.owner, name="Павильон A", address="1 этаж")
-        self.shop_b = Shop.objects.create(owner=self.owner, name="Павильон B", address="2 этаж")
-        self.foreign = Shop.objects.create(owner=self.other, name="Чужой")
-        self.client.force_login(self.owner)
-
-    def make(self, shop, title="Товар", **kwargs):
-        product = Product.objects.create(shop=shop, title=title, price=Decimal("100"), **kwargs)
-        product.delivery_methods.set([DeliveryMethod.objects.get(code="pickup")])
-        return product
-
-    def test_requires_authentication(self):
-        self.client.logout()
-
-        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_returns_all_own_products_grouped_by_shop(self):
-        b_old = self.make(self.shop_b, "B старый")
-        a_old = self.make(self.shop_a, "A старый")
-        b_new = self.make(self.shop_b, "B новый")
-        a_new = self.make(self.shop_a, "A новый")
-        self.make(self.foreign, "Чужой")
-        self.make(self.shop_a, "Удалённый", status=Product.Status.ARCHIVED)
-
-        response = self.client.get(self.url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # без пагинации: просто список
-        self.assertIsInstance(response.data, list)
-        # магазины подряд в порядке /seller/shops/, внутри — новые сверху
-        self.assertEqual([p["id"] for p in response.data], [a_new.id, a_old.id, b_new.id, b_old.id])
-        self.assertEqual(response.data[0]["shop"], {"id": self.shop_a.id, "name": "Павильон A"})
-        self.assertEqual(response.data[2]["shop"], {"id": self.shop_b.id, "name": "Павильон B"})
-        # порядок магазинов совпадает со списком магазинов продавца
-        shop_order = [s["id"] for s in self.client.get(reverse("seller-shop-list")).data]
-        self.assertEqual(list(dict.fromkeys(p["shop"]["id"] for p in response.data)), shop_order)
-
-    def test_user_without_shops_gets_empty_list(self):
-        self.make(self.foreign)
-        self.client.force_login(User.objects.create_user(email="buyer@example.com", password="x"))
-
-        self.assertEqual(self.client.get(self.url).data, [])
-
-    def test_supports_shared_product_filters(self):
-        match = self.make(self.shop_b, "Чехол iPhone")
-        self.make(self.shop_a, "Чехол Samsung")
-        self.make(self.shop_b, "Зарядка")
-
-        response = self.client.get(self.url, {"q": "чехол", "shop": self.shop_b.id})
-
-        self.assertEqual([p["id"] for p in response.data], [match.id])
-
-    def test_foreign_shop_filter_returns_nothing(self):
-        self.make(self.foreign)
-
-        self.assertEqual(self.client.get(self.url, {"shop": self.foreign.id}).data, [])
-
-    def test_query_count_does_not_grow(self):
-        from django.db import connection
-        from django.test.utils import CaptureQueriesContext
-
-        def count_queries():
-            with CaptureQueriesContext(connection) as ctx:
-                self.client.get(self.url)
-            return len(ctx.captured_queries)
-
-        self.make(self.shop_a)
-        baseline = count_queries()
-        for i in range(6):
-            self.make(self.shop_a if i % 2 else self.shop_b)
-
-        self.assertEqual(count_queries(), baseline)
-
-    def test_per_shop_list_also_contains_shop(self):
-        self.make(self.shop_a)
-
-        response = self.client.get(reverse("seller-product-list", args=[self.shop_a.id]))
-
-        self.assertEqual(response.data["results"][0]["shop"], {"id": self.shop_a.id, "name": "Павильон A"})
-
-
 class PickupRequiresShopAddressTests(APITestCase):
     """Самовывоз можно назначить товару, только если у магазина есть адрес."""
 
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
+        self.owner = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        self.shop = Shop.objects.create(name="Павильон 12")
         self.pickup = DeliveryMethod.objects.get(code="pickup")
         self.courier = DeliveryMethod.objects.get(code="market_courier")
         self.client.force_login(self.owner)
-        self.list_url = reverse("seller-product-list", args=[self.shop.id])
+        self.list_url = reverse("admin-product-list")
 
     def create(self, method_ids):
         return self.client.post(
             self.list_url,
-            {"title": "iPhone 15", "price": "100", "delivery_method_ids": method_ids},
+            {"title": "iPhone 15", "price_usd": "100", "delivery_method_ids": method_ids},
             format="json",
         )
 
     def make_product(self, methods):
-        product = Product.objects.create(shop=self.shop, title="A", price=Decimal("1"))
+        product = Product.objects.create(shop=self.shop, title="A", price_usd=Decimal("1"))
         product.delivery_methods.set(methods)
         return product
 
@@ -888,7 +804,7 @@ class PickupRequiresShopAddressTests(APITestCase):
         product = self.make_product([self.courier])
 
         response = self.client.patch(
-            reverse("seller-product-detail", args=[self.shop.id, product.id]),
+            reverse("admin-product-detail", args=[product.id]),
             {"delivery_method_ids": [self.pickup.id]},
             format="json",
         )
@@ -901,7 +817,7 @@ class PickupRequiresShopAddressTests(APITestCase):
         product = self.make_product([self.pickup])
 
         response = self.client.patch(
-            reverse("seller-product-detail", args=[self.shop.id, product.id]), {"price": "200"}, format="json"
+            reverse("admin-product-detail", args=[product.id]), {"price_usd": "200"}, format="json"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
@@ -923,13 +839,13 @@ class ShopAddressInUseTests(APITestCase):
     """Адрес нельзя стереть, пока у товаров магазина выбран самовывоз."""
 
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
-        self.url = reverse("seller-shop-detail", args=[self.shop.id])
+        self.owner = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
+        self.shop = Shop.objects.create(name="Павильон 12", address="2 этаж, B-12")
+        self.url = reverse("admin-shop")
         self.client.force_login(self.owner)
 
     def make_product(self, code, **kwargs):
-        product = Product.objects.create(shop=self.shop, title="A", price=Decimal("1"), **kwargs)
+        product = Product.objects.create(shop=self.shop, title="A", price_usd=Decimal("1"), **kwargs)
         product.delivery_methods.set([DeliveryMethod.objects.get(code=code)])
         return product
 
@@ -963,8 +879,8 @@ class ShopAddressInUseTests(APITestCase):
         self.assertEqual(self.shop.address, "")
 
     def test_other_shop_pickup_does_not_block(self):
-        other = Shop.objects.create(owner=self.owner, name="Другой", address="3 этаж")
-        product = Product.objects.create(shop=other, title="B", price=Decimal("1"))
+        other = Shop.objects.create(name="Другой", address="3 этаж")
+        product = Product.objects.create(shop=other, title="B", price_usd=Decimal("1"))
         product.delivery_methods.set([DeliveryMethod.objects.get(code="pickup")])
 
         response = self.client.patch(self.url, {"address": ""}, format="json")
@@ -974,17 +890,17 @@ class ShopAddressInUseTests(APITestCase):
 
 class ProductImagesTests(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
+        self.owner = User.objects.create_user(email="seller@example.com", password="x", is_staff=True)
         self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
-        self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price=Decimal("10"))
+        self.shop = Shop.objects.create(name="Павильон 12", address="2 этаж, B-12")
+        self.product = Product.objects.create(shop=self.shop, title="iPhone 15", price_usd=Decimal("10"))
         self.client.force_login(self.owner)
-        self.images_url = reverse("seller-product-images", args=[self.shop.id, self.product.id])
-        self.order_url = reverse("seller-product-images-order", args=[self.shop.id, self.product.id])
-        self.detail_url = reverse("seller-product-detail", args=[self.shop.id, self.product.id])
+        self.images_url = reverse("admin-product-images", args=[self.product.id])
+        self.order_url = reverse("admin-product-images-order", args=[self.product.id])
+        self.detail_url = reverse("admin-product-detail", args=[self.product.id])
 
     def image_url(self, image_id):
-        return reverse("seller-product-image-detail", args=[self.shop.id, self.product.id, image_id])
+        return reverse("admin-product-image-detail", args=[self.product.id, image_id])
 
     def upload(self, name="photo.png"):
         return self.client.post(self.images_url, {"image": make_image(name)}, format="multipart")
@@ -1025,10 +941,10 @@ class ProductImagesTests(APITestCase):
 
     def test_create_product_with_several_images(self):
         response = self.client.post(
-            reverse("seller-product-list", args=[self.shop.id]),
+            reverse("admin-product-list"),
             {
                 "title": "С фото",
-                "price": "100",
+                "price_usd": "100",
                 "delivery_method_ids": [pickup_id()],
                 "images": [make_image("a.png"), make_image("b.jpg", fmt="JPEG")],
             },
@@ -1080,7 +996,7 @@ class ProductImagesTests(APITestCase):
 
     def test_reorder_must_list_every_image_once(self):
         a, b, c = self.upload_three()
-        foreign = Product.objects.create(shop=self.shop, title="Другой", price=Decimal("1"))
+        foreign = Product.objects.create(shop=self.shop, title="Другой", price_usd=Decimal("1"))
         foreign_image = ProductImage.objects.create(product=foreign, image="products/x.png")
 
         for ids in ([a, b], [a, b, c, c], [a, b, foreign_image.id]):
@@ -1129,7 +1045,7 @@ class ProductImagesTests(APITestCase):
         self.assertEqual(len(response.data["images"]), 2)
         self.assertEqual(self.cover(), b_name)
 
-    def test_other_seller_gets_404(self):
+    def test_not_staff_gets_403(self):
         image_id = self.upload().data["id"]
         self.client.force_login(self.other)
 
@@ -1141,11 +1057,11 @@ class ProductImagesTests(APITestCase):
         ]
 
         for response in responses:
-            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self.product.images.count(), 1)
 
     def test_image_of_other_product_cannot_be_deleted_via_this_url(self):
-        foreign = Product.objects.create(shop=self.shop, title="Другой", price=Decimal("1"))
+        foreign = Product.objects.create(shop=self.shop, title="Другой", price_usd=Decimal("1"))
         foreign_image = ProductImage.objects.create(product=foreign, image="products/x.png")
 
         response = self.client.delete(self.image_url(foreign_image.id))
@@ -1160,7 +1076,7 @@ class ProductImagesTests(APITestCase):
 
         migration = importlib.import_module("apps.catalog.migrations.0005_product_images")
         Product.objects.filter(pk=self.product.pk).update(image="products/old.png")
-        Product.objects.create(shop=self.shop, title="Без фото", price=Decimal("1"))
+        Product.objects.create(shop=self.shop, title="Без фото", price_usd=Decimal("1"))
 
         migration.copy_current_image(global_apps, None)
 
@@ -1180,11 +1096,13 @@ class ProductImagesTests(APITestCase):
             "shop": self.shop.id,
             "title": self.product.title,
             "description": "",
-            "price": "10",
+            "price_usd": "10",
             "quantity": 1,
             "status": "active",
             "images-TOTAL_FORMS": "3",
             "images-INITIAL_FORMS": "3",
+            "characteristics-TOTAL_FORMS": "0",
+            "characteristics-INITIAL_FORMS": "0",
         }
         for index, image in enumerate(self.product.images.all()):
             data[f"images-{index}-id"] = image.id

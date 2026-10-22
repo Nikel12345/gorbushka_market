@@ -1,15 +1,12 @@
 import os
 import uuid
 
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.catalog.filters import clean_feed_params
 from apps.core.models import TimeStampedModel
 from apps.core.validators import validate_site_link
-from apps.shops.models import Shop
 
 
 def promo_image_upload_to(instance, filename):
@@ -20,12 +17,11 @@ def promo_image_upload_to(instance, filename):
 
 class PromoQuerySet(models.QuerySet):
     def live(self, now=None):
-        """Включённые, в периоде показа и без ссылки на скрытый от покупателей магазин."""
+        """Включённые и в периоде показа."""
         now = now or timezone.now()
         return self.filter(
             Q(starts_at__isnull=True) | Q(starts_at__lte=now),
             Q(ends_at__isnull=True) | Q(ends_at__gt=now),
-            Q(shop__isnull=True) | Q(shop__in=Shop.objects.public()),
             is_active=True,
         )
 
@@ -49,29 +45,13 @@ class Promo(TimeStampedModel):
         blank=True,
         help_text="Узкая версия. Если нет — показывается основная.",
     )
-    # Куда ведёт полоса: на магазин (с фильтрами его товаров) или по произвольной ссылке.
-    # Либо одно, либо другое, либо никуда.
-    shop = models.ForeignKey(
-        Shop,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="promos",
-        verbose_name="магазин",
-        help_text="Полоса ведёт на страницу магазина с его товарами.",
-    )
-    filters = models.JSONField(
-        "фильтры товаров магазина",
-        default=dict,
-        blank=True,
-        help_text='Параметры ленты, как в адресе: {"q": "чехол", "price_max": 5000, "in_stock": true, "sort": "price_asc"}.',
-    )
+    # Куда ведёт полоса. Пусто — никуда.
     url = models.CharField(
         "ссылка",
         max_length=500,
         blank=True,
         validators=[validate_site_link],
-        help_text="Вместо магазина: путь на сайте (/products/7) или полный адрес https://...",
+        help_text="Путь на сайте (/products/7, /?q=чехол) или полный адрес https://...",
     )
     position = models.PositiveIntegerField("порядок", default=0)
     is_active = models.BooleanField("показывать", default=True)
@@ -91,22 +71,7 @@ class Promo(TimeStampedModel):
                 name="promo_period_valid",
                 violation_error_message="«Показывать до» должно быть позже «Показывать с».",
             ),
-            models.CheckConstraint(
-                condition=Q(shop__isnull=True) | Q(url=""),
-                name="promo_single_target",
-                violation_error_message="Укажите либо магазин, либо ссылку.",
-            ),
         ]
 
     def __str__(self):
         return self.title
-
-    def clean(self):
-        super().clean()
-        if self.filters and not self.shop_id:
-            raise ValidationError({"filters": "Фильтры задаются только для ссылки на магазин."})
-        if self.filters:
-            try:
-                self.filters = clean_feed_params(self.filters, exclude=("shop",))
-            except ValidationError as error:
-                raise ValidationError({"filters": error.messages}) from error

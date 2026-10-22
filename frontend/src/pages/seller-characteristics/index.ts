@@ -1,0 +1,1 @@
+export { CharacteristicsPage } from './CharacteristicsPage'

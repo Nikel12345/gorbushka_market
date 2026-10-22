@@ -1,0 +1,155 @@
+/* «О магазине»: шапка, три факта, разделы карточками. Текст читается легче, если строка не во всю ленту */
+.about-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+/* Отступы между карточками даёт сетка */
+.about-page .ui-card + .ui-card {
+  margin-top: 0;
+}
+
+/* --- Шапка --- */
+
+.about-hero {
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--color-brand-light), var(--color-surface) 60%);
+  box-shadow: var(--shadow-1);
+}
+
+.about-hero__eyebrow {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-brand);
+}
+
+.about-hero__title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.2;
+}
+
+.about-hero__lead {
+  max-width: 600px;
+  margin: 12px 0 0;
+  font-size: 16px;
+}
+
+.about-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+/* --- Адрес, метро, часы --- */
+
+.about-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.about-fact__icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border-radius: 50%;
+  background: var(--color-brand-light);
+  fill: var(--color-brand);
+}
+
+.about-fact__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.about-fact__label,
+.about-fact__note {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.about-fact__value {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* --- Разделы --- */
+
+.about-page__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.about-text p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.about-text p + p {
+  margin-top: 10px;
+}
+
+.about-text a {
+  color: var(--color-brand);
+}
+
+.about-delivery {
+  margin: 0;
+  font-size: 15px;
+}
+
+.about-delivery dt {
+  font-weight: 600;
+}
+
+.about-delivery dd {
+  margin: 2px 0 0;
+  color: var(--color-text-secondary);
+}
+
+.about-delivery dd + dt {
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .about-facts,
+  .about-page__columns {
+    grid-template-columns: 1fr;
+  }
+
+  .about-hero {
+    padding: 24px 20px;
+  }
+
+  .about-hero__title {
+    font-size: 26px;
+  }
+}

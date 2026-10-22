@@ -10,246 +10,129 @@ from apps.users.models import User
 from .models import Shop
 
 
-class SellerProfileTests(APITestCase):
+class ShopAdminApiTests(APITestCase):
+    """Магазин в админке магазина: /admin/shop/ — только для сотрудников."""
+
+    url = reverse("admin-shop")
+
     def setUp(self):
-        self.user = User.objects.create_user(email="seller@example.com", password="x", first_name="Пётр")
-        self.other = User.objects.create_user(email="other@example.com", password="x")
+        self.staff = User.objects.create_user(email="staff@example.com", password="x", is_staff=True)
+        self.buyer = User.objects.create_user(email="buyer@example.com", password="x")
+        self.shop = Shop.objects.create(name="Старое", description="d", address="1 этаж, A-1")
+        self.client.force_login(self.staff)
 
-    def test_requires_authentication(self):
-        response = self.client.get(reverse("seller-profile"))
+    def test_requires_staff(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.client.force_login(self.buyer)
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.client.patch(self.url, {"name": "X"}, format="json").status_code, status.HTTP_403_FORBIDDEN)
+        self.shop.refresh_from_db()
+        self.assertEqual(self.shop.name, "Старое")
 
-    def test_returns_user_data_and_only_own_shops(self):
-        shop = Shop.objects.create(owner=self.user, name="Павильон 12")
-        Shop.objects.create(owner=self.other, name="Чужой")
-        self.client.force_login(self.user)
+    def test_is_extended_public_info(self):
+        Product.objects.create(shop=self.shop, title="A", price_usd=Decimal("1"))
 
-        response = self.client.get(reverse("seller-profile"))
+        admin_data = self.client.get(self.url).data
+        public_data = self.client.get(reverse("shop-detail", args=[self.shop.id])).data
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["email"], "seller@example.com")
-        self.assertEqual(response.data["first_name"], "Пётр")
-        self.assertEqual(response.data["shops"], [{"id": shop.id, "name": "Павильон 12"}])
+        # всё публичное есть и в админке, плюс служебные поля
+        self.assertLessEqual(public_data.keys(), admin_data.keys())
+        self.assertIn("updated_at", admin_data)
+        self.assertEqual(admin_data["id"], self.shop.id)
+        self.assertEqual(admin_data["address"], "1 этаж, A-1")
+        self.assertEqual(admin_data["products_count"], 1)
 
-
-class SellerShopTests(APITestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(email="seller@example.com", password="x")
-        self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.client.force_login(self.user)
-
-    def test_create_shop(self):
-        response = self.client.post(
-            reverse("seller-shop-list"),
-            {"name": "Павильон 12", "description": "Смартфоны"},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        shop = Shop.objects.get(pk=response.data["id"])
-        self.assertEqual(shop.owner, self.user)
-        self.assertEqual(shop.name, "Павильон 12")
-
-    def test_owner_cannot_be_set_from_request(self):
-        response = self.client.post(
-            reverse("seller-shop-list"),
-            {"name": "Павильон", "owner": self.other.id},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Shop.objects.get(pk=response.data["id"]).owner, self.user)
-
-    def test_create_shop_requires_name(self):
-        response = self.client.post(reverse("seller-shop-list"), {}, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("name", response.data)
-
-    def test_list_returns_only_own_shops(self):
-        own = Shop.objects.create(owner=self.user, name="Мой")
-        Shop.objects.create(owner=self.other, name="Чужой")
-
-        response = self.client.get(reverse("seller-shop-list"))
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual([s["id"] for s in response.data], [own.id])
-
-    def test_foreign_shop_detail_is_404(self):
-        foreign = Shop.objects.create(owner=self.other, name="Чужой")
-
-        response = self.client.get(reverse("seller-shop-detail", args=[foreign.id]))
-
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_seller_detail_is_extended_public_info(self):
-        shop = Shop.objects.create(owner=self.user, name="Павильон 12")
-        Product.objects.create(shop=shop, title="A", price=Decimal("1"))
-
-        seller_data = self.client.get(reverse("seller-shop-detail", args=[shop.id])).data
-        public_data = self.client.get(reverse("shop-detail", args=[shop.id])).data
-
-        # всё публичное есть и у продавца, плюс служебные поля
-        self.assertLessEqual(public_data.keys(), seller_data.keys())
-        self.assertIn("updated_at", seller_data)
-        self.assertEqual(seller_data["products_count"], 1)
-
-    def test_created_shop_has_products_count(self):
-        response = self.client.post(reverse("seller-shop-list"), {"name": "Новый"}, format="json")
-
-        self.assertEqual(response.data["products_count"], 0)
-
-    def test_patch_own_shop(self):
-        shop = Shop.objects.create(owner=self.user, name="Старое", description="d")
-
-        response = self.client.patch(
-            reverse("seller-shop-detail", args=[shop.id]),
-            {"name": "Новое", "owner": self.other.id},
-            format="json",
-        )
+    def test_patch(self):
+        response = self.client.patch(self.url, {"name": "Новое"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["name"], "Новое")
-        shop.refresh_from_db()
-        self.assertEqual(shop.name, "Новое")
-        self.assertEqual(shop.description, "d")
-        self.assertEqual(shop.owner, self.user)
+        self.shop.refresh_from_db()
+        self.assertEqual(self.shop.name, "Новое")
+        self.assertEqual(self.shop.description, "d")
 
-    def test_patch_foreign_shop_is_404(self):
-        foreign = Shop.objects.create(owner=self.other, name="Чужой")
+    def test_put_and_post_are_not_allowed(self):
+        self.assertEqual(
+            self.client.put(self.url, {"name": "X"}, format="json").status_code, status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+        self.assertEqual(
+            self.client.post(self.url, {"name": "Второй"}, format="json").status_code, status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+        self.assertEqual(Shop.objects.count(), 1)
 
-        response = self.client.patch(reverse("seller-shop-detail", args=[foreign.id]), {"name": "X"}, format="json")
+    def test_shop_not_created_yet_is_404(self):
+        Shop.objects.all().delete()
+
+        response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        foreign.refresh_from_db()
-        self.assertEqual(foreign.name, "Чужой")
+        self.assertEqual(response.data["code"], "shop_not_found")
 
-    def test_put_is_not_allowed(self):
-        shop = Shop.objects.create(owner=self.user, name="Мой")
+    def test_patch_address_is_trimmed(self):
+        response = self.client.patch(self.url, {"address": "  Горбушкин двор, 2 этаж, B-12  "}, format="json")
 
-        response = self.client.put(reverse("seller-shop-detail", args=[shop.id]), {"name": "X"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["address"], "Горбушкин двор, 2 этаж, B-12")
+        self.shop.refresh_from_db()
+        self.assertEqual(self.shop.address, "Горбушкин двор, 2 этаж, B-12")
 
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+    def test_address_too_long(self):
+        response = self.client.patch(self.url, {"address": "a" * 256}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("address", response.data)
+
+
+class ShopDjangoAdminTests(APITestCase):
+    """Магазин один: в админке Django его можно завести, только пока его нет, и нельзя удалить."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(email="admin@example.com", password="x")
+        self.client.force_login(self.admin)
+
+    def test_add_only_while_there_is_no_shop(self):
+        self.assertEqual(self.client.get(reverse("admin:shops_shop_add")).status_code, status.HTTP_200_OK)
+
+        Shop.objects.create(name="Магазин")
+
+        self.assertEqual(self.client.get(reverse("admin:shops_shop_add")).status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_cannot_delete(self):
+        shop = Shop.objects.create(name="Магазин")
+
+        response = self.client.get(reverse("admin:shops_shop_delete", args=[shop.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class ShopPublicTests(APITestCase):
     def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.shop = Shop.objects.create(owner=self.owner, name="Павильон 12", description="Смартфоны")
+        self.shop = Shop.objects.create(name="Павильон 12", description="Смартфоны", address="2 этаж, B-12")
 
     def test_public_shop_page_for_anonymous(self):
-        Product.objects.create(shop=self.shop, title="A", price=Decimal("1"))
-        Product.objects.create(shop=self.shop, title="B", price=Decimal("1"))
-        Product.objects.create(shop=self.shop, title="C", price=Decimal("1"), status=Product.Status.ARCHIVED)
+        Product.objects.create(shop=self.shop, title="A", price_usd=Decimal("1"))
+        Product.objects.create(shop=self.shop, title="B", price_usd=Decimal("1"))
+        Product.objects.create(shop=self.shop, title="C", price_usd=Decimal("1"), status=Product.Status.ARCHIVED)
 
         response = self.client.get(reverse("shop-detail", args=[self.shop.id]))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["name"], "Павильон 12")
         self.assertEqual(response.data["description"], "Смартфоны")
+        self.assertEqual(response.data["address"], "2 этаж, B-12")
         self.assertEqual(response.data["products_count"], 2)
-        self.assertNotIn("owner", response.data)
         self.assertNotIn("updated_at", response.data)
 
     def test_unknown_shop_is_404(self):
         self.assertEqual(self.client.get(reverse("shop-detail", args=[999])).status_code, status.HTTP_404_NOT_FOUND)
 
     def test_shop_products_come_from_the_shared_feed(self):
-        product = Product.objects.create(shop=self.shop, title="A", price=Decimal("1"))
-        other_shop = Shop.objects.create(owner=self.owner, name="Другой")
-        Product.objects.create(shop=other_shop, title="B", price=Decimal("1"))
+        product = Product.objects.create(shop=self.shop, title="A", price_usd=Decimal("1"))
+        other_shop = Shop.objects.create(name="Другой")
+        Product.objects.create(shop=other_shop, title="B", price_usd=Decimal("1"))
 
         response = self.client.get(reverse("product-feed"), {"shop": self.shop.id})
 
         self.assertEqual([p["id"] for p in response.data["results"]], [product.id])
-
-
-class ShopAddressTests(APITestCase):
-    def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.client.force_login(self.owner)
-
-    def test_create_with_address(self):
-        response = self.client.post(
-            reverse("seller-shop-list"),
-            {"name": "Павильон 12", "address": "  Горбушкин двор, 2 этаж, B-12  "},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["address"], "Горбушкин двор, 2 этаж, B-12")
-        self.assertEqual(Shop.objects.get(pk=response.data["id"]).address, "Горбушкин двор, 2 этаж, B-12")
-
-    def test_address_is_optional(self):
-        response = self.client.post(reverse("seller-shop-list"), {"name": "Без адреса"}, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["address"], "")
-
-    def test_patch_address(self):
-        shop = Shop.objects.create(owner=self.owner, name="Павильон 12")
-
-        response = self.client.patch(
-            reverse("seller-shop-detail", args=[shop.id]), {"address": "1 этаж, A-3"}, format="json"
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        shop.refresh_from_db()
-        self.assertEqual(shop.address, "1 этаж, A-3")
-        self.assertEqual(shop.name, "Павильон 12")
-
-    def test_address_too_long(self):
-        response = self.client.post(reverse("seller-shop-list"), {"name": "X", "address": "a" * 256}, format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("address", response.data)
-
-    def test_public_page_shows_address(self):
-        shop = Shop.objects.create(owner=self.owner, name="Павильон 12", address="2 этаж, B-12")
-        self.client.logout()
-
-        response = self.client.get(reverse("shop-detail", args=[shop.id]))
-
-        self.assertEqual(response.data["address"], "2 этаж, B-12")
-
-
-class SellerShopsPageTests(APITestCase):
-    """Список магазинов продавца и карточка магазина в кабинете."""
-
-    def setUp(self):
-        self.owner = User.objects.create_user(email="seller@example.com", password="x")
-        self.other = User.objects.create_user(email="other@example.com", password="x")
-        self.shop_a = Shop.objects.create(owner=self.owner, name="Павильон A", address="1 этаж, A-1")
-        self.shop_b = Shop.objects.create(owner=self.owner, name="Павильон B", address="2 этаж, B-7")
-        Shop.objects.create(owner=self.other, name="Чужой")
-
-    def test_list_requires_authentication(self):
-        self.assertEqual(self.client.get(reverse("seller-shop-list")).status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_list_returns_own_shops_with_name_and_address(self):
-        self.client.force_login(self.owner)
-
-        response = self.client.get(reverse("seller-shop-list"))
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            [(s["id"], s["name"], s["address"]) for s in response.data],
-            [(self.shop_a.id, "Павильон A", "1 этаж, A-1"), (self.shop_b.id, "Павильон B", "2 этаж, B-7")],
-        )
-
-    def test_shop_card(self):
-        self.client.force_login(self.owner)
-
-        response = self.client.get(reverse("seller-shop-detail", args=[self.shop_b.id]))
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "Павильон B")
-        self.assertEqual(response.data["address"], "2 этаж, B-7")
-
-    def test_shop_card_of_another_seller_is_404(self):
-        self.client.force_login(self.other)
-
-        response = self.client.get(reverse("seller-shop-detail", args=[self.shop_a.id]))
-
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

@@ -1,19 +1,15 @@
-from django.conf import settings
 from django.db import models
 
 from apps.core.models import TimeStampedModel
 
 
 class ShopQuerySet(models.QuerySet):
-    def managed_by(self, user):
+    def current(self):
         """
-        Магазины, которыми пользователь может управлять из кабинета продавца.
-        Единственная точка проверки доступа к магазину: когда появятся сотрудники
-        и роли, меняется только этот метод.
+        Магазин. Он один: заводится в админке Django, через API не создаётся.
+        None — ещё не заведён.
         """
-        if not user.is_authenticated:
-            return self.none()
-        return self.filter(owner=user)
+        return self.order_by("id").first()
 
     def public(self):
         """
@@ -35,12 +31,6 @@ class ShopQuerySet(models.QuerySet):
 
 
 class Shop(TimeStampedModel):
-    owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="shops",
-        verbose_name="владелец",
-    )
     name = models.CharField("название", max_length=255)
     description = models.TextField("описание", blank=True)
     # Где покупатель забирает товар при самовывозе: павильон, ряд, место

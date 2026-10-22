@@ -36,16 +36,8 @@ export function FeedPromo() {
   )
 }
 
-/** Магазин — его страница с фильтрами товаров; путь на сайте — Link; внешний адрес — новая вкладка */
+/** Путь на сайте — Link; внешний адрес — новая вкладка; пусто — без ссылки */
 function PromoLink({ promo, children }: { promo: Promo; children: ReactNode }) {
-  if (promo.shop) {
-    const search = new URLSearchParams(promo.filters).toString()
-    return (
-      <Link to={{ pathname: `/shops/${promo.shop.id}`, search: search && `?${search}` }} className="feed-promo__link">
-        {children}
-      </Link>
-    )
-  }
   if (promo.url.startsWith('/')) {
     return (
       <Link to={promo.url} className="feed-promo__link">
