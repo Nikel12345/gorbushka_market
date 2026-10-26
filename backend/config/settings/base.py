@@ -125,6 +125,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 PRODUCT_IMAGE_MAX_BYTES = env.int("PRODUCT_IMAGE_MAX_MB", default=5) * 1024 * 1024
 # Сколько фото может быть у одного товара
 PRODUCT_IMAGES_MAX = env.int("PRODUCT_IMAGES_MAX", default=10)
+# Сколько аксессуаров может быть у модели товара (catalog/accessories.py)
+PRODUCT_ACCESSORIES_MAX = env.int("PRODUCT_ACCESSORIES_MAX", default=50)
 
 # Какую часть суммы покупки можно оплатить бонусами (доля от 0 до 1)
 BONUS_MAX_SHARE = Decimal(env.str("BONUS_MAX_SHARE", default="0.5"))

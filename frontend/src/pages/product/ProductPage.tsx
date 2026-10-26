@@ -14,7 +14,7 @@ import {
 } from '@/shared/api'
 import { formatPrice, formatRating, pluralize, useRequest } from '@/shared/lib'
 import { EmptyState, ErrorState, LinkButton, Loader } from '@/shared/ui'
-import { BoughtTogether } from './BoughtTogether'
+import { Accessories } from './Accessories'
 import './ProductPage.css'
 
 /**
@@ -140,7 +140,9 @@ export function ProductPage() {
         </div>
       </article>
 
-      <BoughtTogether productId={p.id} />
+      {/* Временно: «Часто покупают» по истории покупок (BoughtTogether) скрыт, его место и название занял
+          список аксессуаров. Вернуть — <BoughtTogether productId={p.id} /> и прежний заголовок в Accessories */}
+      <Accessories productId={p.id} />
 
       {/* key — отзывы у каждого варианта свои, фильтр и сортировка начинаются заново */}
       <ProductReviews key={p.id} product={p} onChanged={product.reload} />

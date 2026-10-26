@@ -30,15 +30,24 @@
   font-size: 14px;
 }
 
-/* Позиции | итог */
+/* Позиции и «Рекомендуем» под ними | итог. Итог тянется на обе строки и прилипает к экрану,
+   пока листают рекомендации — кнопка оформления всегда под рукой */
 .cart-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-areas:
+    'lines summary'
+    'recommendations summary';
   gap: 24px;
   align-items: start;
 }
 
+.cart-page > .ui-summary {
+  grid-area: summary;
+}
+
 .cart-page__lines {
+  grid-area: lines;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -146,9 +155,47 @@
   text-decoration: line-through;
 }
 
+/* --- Рекомендуем: лента плиток, как на главной --- */
+
+.cart-recommendations {
+  grid-area: recommendations;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.cart-recommendations__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cart-recommendations__footer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 24px;
+  font-size: 14px;
+}
+
+.cart-recommendations__error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  color: var(--color-danger);
+}
+
+/* Одна колонка: итог сразу под товарами, рекомендации — после него, иначе до оформления не долистать */
 @media (max-width: 900px) {
   .cart-page {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'lines'
+      'summary'
+      'recommendations';
   }
 }
 

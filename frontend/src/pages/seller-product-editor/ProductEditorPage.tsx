@@ -25,6 +25,7 @@ import { Button, Card, EmptyState, ErrorState, Field, FieldError, LinkButton, Lo
 import { CharacteristicsField } from './CharacteristicsField'
 import { DeliveryMethodsField } from './DeliveryMethodsField'
 import { GroupPicker } from './GroupPicker'
+import { ProductAccessories } from './ProductAccessories'
 import { ProductPhotosField } from './ProductPhotosField'
 import { UsdPriceField } from './UsdPriceField'
 import {
@@ -423,6 +424,15 @@ function ProductEditor({ product, initial, copyOf, initialGroup, onSaved, onRelo
           {group && (
             <Card title="Товары группы" flush>
               <GroupProducts key={`${group.id}-${savedCount}`} group={group} currentId={product?.id} />
+            </Card>
+          )}
+
+          {product ? (
+            // key — после смены группы у товара другой список (группы или свой)
+            <ProductAccessories key={product.group?.id ?? 'own'} product={product} categories={categories} />
+          ) : (
+            <Card title="Аксессуары">
+              <p className="product-editor__hint">Аксессуары можно добавить, когда товар будет выставлен на продажу.</p>
             </Card>
           )}
         </div>

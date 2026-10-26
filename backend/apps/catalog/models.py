@@ -308,6 +308,57 @@ class ProductCharacteristic(models.Model):
         return str(self.value)
 
 
+class ProductAccessory(models.Model):
+    """
+    Аксессуар модели товара — раздел «Аксессуары» на его странице. Модель — группа вариантов
+    (group: список общий для всех её вариантов) или товар без группы (product), ровно одно из двух.
+    accessory — конкретный товар, его и показываем. Правила — catalog/accessories.py.
+    """
+
+    group = models.ForeignKey(
+        ProductGroup,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="accessory_links",
+        verbose_name="группа вариантов",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="accessory_links",
+        verbose_name="товар",
+    )
+    # Обратная связь: Product.objects.filter(accessory_for__group=G) — аксессуары группы G
+    accessory = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="accessory_for",
+        verbose_name="аксессуар",
+    )
+    position = models.PositiveSmallIntegerField("порядок", default=0)
+
+    class Meta:
+        verbose_name = "аксессуар"
+        verbose_name_plural = "аксессуары"
+        ordering = ["position", "id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(group__isnull=False, product__isnull=True)
+                | models.Q(group__isnull=True, product__isnull=False),
+                name="catalog_accessory_one_owner",
+            ),
+            # NULL не равен NULL — пара с пустым group (или product) не мешает другим
+            models.UniqueConstraint(fields=["group", "accessory"], name="catalog_accessory_group_unique"),
+            models.UniqueConstraint(fields=["product", "accessory"], name="catalog_accessory_product_unique"),
+        ]
+
+    def __str__(self):
+        return f"{self.group or self.product} → {self.accessory}"
+
+
 class ProductImage(models.Model):
     """
     Фото товара. Порядок — по position (затем id), первое фото — обложка (Product.image).

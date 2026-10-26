@@ -380,6 +380,8 @@ class ProductDjangoAdminVariantsTests(VariantsBase):
             "images-INITIAL_FORMS": "0",
             "characteristics-TOTAL_FORMS": "3",
             "characteristics-INITIAL_FORMS": "0",
+            "accessory_links-TOTAL_FORMS": "0",
+            "accessory_links-INITIAL_FORMS": "0",
         }
         for index, value in enumerate([self.silver, self.ram8, self.ssd256]):
             data[f"characteristics-{index}-value"] = value.id

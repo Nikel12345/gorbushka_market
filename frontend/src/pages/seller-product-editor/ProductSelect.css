@@ -1,0 +1,140 @@
+/* Выбор товара с превью: кнопка в виде поля и список под ней */
+
+.product-select__button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding-block: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.product-select__button:disabled {
+  background: var(--color-surface-muted);
+  cursor: default;
+}
+
+.product-select__placeholder {
+  flex: 1;
+  color: var(--color-text-secondary);
+}
+
+/* Стрелка, как у select */
+.product-select__chevron {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin: 0 4px -2px auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-3px) rotate(45deg);
+  opacity: 0.6;
+}
+
+/* --- Список --- */
+
+.product-select__list {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text);
+  transition: opacity 0.2s;
+}
+
+.product-select__list--dimmed {
+  opacity: 0.6;
+}
+
+.product-select__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.product-select__option:hover:not(:disabled),
+.product-select__option:focus-visible {
+  background: var(--color-hover);
+  outline: none;
+}
+
+.product-select__option--selected {
+  background: var(--color-brand-light);
+}
+
+.product-select__option--selected:hover,
+.product-select__option--selected:focus-visible {
+  background: var(--color-brand-light);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+/* Нельзя выбрать (этот товар, его вариант, уже в списке) — видно, но приглушено */
+.product-select__option:disabled {
+  cursor: default;
+}
+
+.product-select__option:disabled > :not(.ui-chip) {
+  opacity: 0.45;
+}
+
+.product-select__image {
+  flex-shrink: 0;
+  width: 48px;
+  border-radius: var(--radius-sm);
+}
+
+.product-select__image--small {
+  width: 34px;
+}
+
+.product-select__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.product-select__title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.3;
+}
+
+.product-select__button .product-select__title {
+  -webkit-line-clamp: 1;
+}
+
+.product-select__meta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.product-select__stock {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.product-select__option .ui-chip {
+  flex-shrink: 0;
+}

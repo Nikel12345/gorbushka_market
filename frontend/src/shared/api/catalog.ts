@@ -23,6 +23,11 @@ export interface ProductCard {
   created_at: string
 }
 
+/** Карточка в разделе «Аксессуары» (AccessoryCardSerializer): с категорией — для вкладок «Чехлы», «Стёкла» */
+export interface AccessoryCard extends ProductCard {
+  category: CategoryBrief | null
+}
+
 /** Страница товара (ProductPublicDetailSerializer) */
 export interface ProductDetail extends ProductCard {
   description: string
@@ -118,4 +123,11 @@ export const catalogApi = {
    */
   boughtTogether: (id: number, options?: RequestOptions) =>
     apiRequest<ProductCard[]>(`/catalog/products/${id}/bought-together/`, options),
+
+  /**
+   * «Аксессуары»: товары на продаже в порядке, заданном менеджером (до 50). У вариантов одной
+   * группы список общий. Пусто — не заданы.
+   */
+  accessories: (id: number, options?: RequestOptions) =>
+    apiRequest<AccessoryCard[]>(`/catalog/products/${id}/accessories/`, options),
 }

@@ -1,4 +1,4 @@
-import type { Category, CategoryBrief, ProductCharacteristic } from './catalog'
+import type { AccessoryCard, Category, CategoryBrief, ProductCharacteristic } from './catalog'
 import { apiRequest, type ApiRequestInit } from './client'
 import type { DeliveryMethod } from './delivery'
 import { toFormData } from './formData'
@@ -49,6 +49,9 @@ export interface ProductPhoto {
 
 /** Сколько фото можно у товара (PRODUCT_IMAGES_MAX на бэке; точную проверку делает сервер) */
 export const PRODUCT_PHOTOS_MAX = 10
+
+/** Сколько аксессуаров можно у модели товара (PRODUCT_ACCESSORIES_MAX на бэке) */
+export const PRODUCT_ACCESSORIES_MAX = 50
 
 /** Товар в админке (ProductAdminSerializer) */
 export interface Product {
@@ -296,6 +299,21 @@ export const adminApi = {
   /** Новый порядок всех фото товара (первое станет обложкой) */
   reorderProductPhotos: (productId: number, ids: number[]) =>
     apiRequest<ProductPhoto[]>(`/admin/products/${productId}/images/order/`, { method: 'PUT', json: { ids } }),
+
+  /**
+   * Аксессуары товара на продаже по порядку. У товара группы вариантов список общий для всей группы
+   * (и у её новых товаров), у товара без группы — свой.
+   */
+  listProductAccessories: (productId: number, options?: RequestOptions) =>
+    apiRequest<AccessoryCard[]>(`/admin/products/${productId}/accessories/`, options),
+
+  /**
+   * Заменить список аксессуаров целиком, в этом порядке ([] — убрать все) → новый список.
+   * 400: id не товара на продаже — {ids}; сам товар или вариант его группы — code accessory_same_model;
+   * больше PRODUCT_ACCESSORIES_MAX — too_many_accessories
+   */
+  setProductAccessories: (productId: number, ids: number[]) =>
+    apiRequest<AccessoryCard[]>(`/admin/products/${productId}/accessories/`, { method: 'PUT', json: { ids } }),
 
   /** Снять с продажи (мягкое удаление на бэке) */
   archiveProduct: (productId: number) => apiRequest<null>(`/admin/products/${productId}/`, { method: 'DELETE' }),

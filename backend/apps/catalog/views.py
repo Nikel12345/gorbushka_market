@@ -9,12 +9,14 @@ from rest_framework.views import APIView
 from apps.delivery.models import DeliveryMethod
 from apps.shops.mixins import ShopAdminMixin
 
-from . import services
+from . import accessories, services
 from .categories import CategoryTree
 from .filters import CharacteristicFilter, ProductFilter, ProductGroupFilter
 from .models import Category, Characteristic, Product, ProductGroup
 from .pagination import ProductFeedPagination
 from .serializers import (
+    AccessoryCardSerializer,
+    AccessoryListSerializer,
     CategorySerializer,
     CharacteristicSerializer,
     CharacteristicValueSerializer,
@@ -107,6 +109,32 @@ class ProductImageAdminOrderView(ProductAdminMixin, APIView):
         serializer.is_valid(raise_exception=True)
         images = services.reorder_images(self.get_product(), serializer.validated_data["ids"])
         return Response(ProductImageSerializer(images, many=True, context={"request": request}).data)
+
+
+class AccessoryListMixin:
+    """Аксессуары товара на продаже по порядку списка (catalog/accessories.py)."""
+
+    serializer_class = AccessoryCardSerializer
+    pagination_class = None
+
+    def accessories_queryset(self, product: Product):
+        return accessories.accessories_of(product).select_related("shop", "category")
+
+
+class ProductAccessoryAdminView(AccessoryListMixin, ProductAdminMixin, generics.ListAPIView):
+    """
+    GET — аксессуары товара (у товара группы вариантов — общие для всей группы),
+    PUT {"ids": [...]} — заменить список целиком, в этом порядке ([] — убрать все) → новый список.
+    """
+
+    def get_queryset(self):
+        return self.accessories_queryset(self.get_product())
+
+    def put(self, request, *args, **kwargs):
+        serializer = AccessoryListSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        services.set_accessories(self.get_product(), serializer.validated_data["ids"])
+        return self.list(request, *args, **kwargs)
 
 
 # --- Категории ---
@@ -246,6 +274,16 @@ class ProductFeedView(ProductFilterMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return Product.objects.on_sale().select_related("shop")
+
+
+class ProductAccessoryListView(AccessoryListMixin, generics.ListAPIView):
+    """Раздел «Аксессуары» на странице товара. Пусто — не заданы. Снятый с продажи товар — 404."""
+
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        product = get_object_or_404(Product.objects.on_sale().only("id", "group_id"), pk=self.kwargs["product_id"])
+        return self.accessories_queryset(product)
 
 
 class ProductPublicDetailView(generics.RetrieveAPIView):

@@ -6,6 +6,7 @@ from .views import (
     CharacteristicAdminDetailView,
     CharacteristicAdminListCreateView,
     CharacteristicValueAdminCreateView,
+    ProductAccessoryAdminView,
     ProductAdminDetailView,
     ProductAdminListCreateView,
     ProductGroupAdminDetailView,
@@ -30,6 +31,11 @@ urlpatterns = [
         "products/<int:product_id>/images/<int:pk>/",
         ProductImageAdminDetailView.as_view(),
         name="admin-product-image-detail",
+    ),
+    path(
+        "products/<int:product_id>/accessories/",
+        ProductAccessoryAdminView.as_view(),
+        name="admin-product-accessories",
     ),
     path("characteristics/", CharacteristicAdminListCreateView.as_view(), name="admin-characteristic-list"),
     path(

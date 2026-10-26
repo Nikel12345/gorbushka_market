@@ -1,5 +1,7 @@
 import type { ProductCard } from './catalog'
 import { apiRequest, type ApiRequestInit } from './client'
+import { withQuery } from './query'
+import type { CursorPage } from './types'
 
 type RequestOptions = Pick<ApiRequestInit, 'signal'>
 
@@ -40,4 +42,12 @@ export const cartApi = {
   remove: (productId: number) => apiRequest<Cart>(`${CART}items/${productId}/`, { method: 'DELETE' }),
 
   clear: () => apiRequest<Cart>(CART, { method: 'DELETE' }),
+
+  /**
+   * «Рекомендуем»: сначала аксессуары товаров корзины, потом лента главной (новые сверху) — без самих
+   * товаров корзины и их вариантов. Порции по курсору, как в ленте; список считается по корзине
+   * на момент запроса, поэтому при входе в корзину ленту начинают заново.
+   */
+  recommendations: (cursor?: string, options?: RequestOptions) =>
+    apiRequest<CursorPage<ProductCard>>(withQuery(`${CART}recommendations/`, { cursor }), options),
 }

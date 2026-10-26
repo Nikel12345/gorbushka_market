@@ -8,13 +8,14 @@ from apps.core.exceptions import BusinessError
 from apps.core.files import delete_file_on_commit
 from apps.shops.models import Shop
 
-from . import variants
+from . import accessories, variants
 from .categories import check_parent
 from .models import (
     Category,
     Characteristic,
     CharacteristicValue,
     Product,
+    ProductAccessory,
     ProductCharacteristic,
     ProductGroup,
     ProductImage,
@@ -65,7 +66,8 @@ def update_product(product: Product, **fields) -> Product:
     """
     Частичное изменение товара. delivery_methods — заменить набор способов доставки.
     characteristic_values — заменить значения характеристик; они, категория и группа
-    проверяются по правилам вариантов (catalog/variants.py).
+    проверяются по правилам вариантов (catalog/variants.py). При смене группы аксессуары
+    товара переезжают (keep_accessories_on_group_change).
     images — добавить фото в конец. image — старое поле одной картинки: файл заменяет
     обложку, None убирает её (обложкой станет следующее фото).
     Цены в уже оформленных заказах не меняются: там снимок.
@@ -74,6 +76,7 @@ def update_product(product: Product, **fields) -> Product:
     characteristic_values = fields.pop("characteristic_values", None)
     images = fields.pop("images", None)
     has_cover, cover = "image" in fields, fields.pop("image", None)
+    old_group_id = product.group_id
 
     for name, value in fields.items():
         setattr(product, name, value)
@@ -87,6 +90,8 @@ def update_product(product: Product, **fields) -> Product:
         _set_characteristics(product, characteristic_values)
     if fields:
         product.save(update_fields=[*fields, "updated_at"])
+    if product.group_id != old_group_id:
+        keep_accessories_on_group_change(product, old_group_id)
     if delivery_methods is not None:
         product.delivery_methods.set(delivery_methods)
     if has_cover:
@@ -117,6 +122,60 @@ def archive_product(product: Product) -> Product:
     product.status = Product.Status.ARCHIVED
     product.save(update_fields=["status", "updated_at"])
     return product
+
+
+# --- Аксессуары (catalog/accessories.py) ---
+
+
+def _lock_accessories(product: Product) -> None:
+    """Изменения списка одной модели идут по очереди: иначе столкнутся позиции и повторы."""
+    if product.group_id is not None:
+        ProductGroup.objects.select_for_update().get(pk=product.group_id)
+    else:
+        Product.objects.select_for_update().get(pk=product.pk)
+
+
+@transaction.atomic
+def set_accessories(product: Product, items: Sequence[Product]) -> None:
+    """Заменяет список аксессуаров модели товара (у товара группы — всей группы) на items в этом порядке."""
+    _lock_accessories(product)
+    accessories.check_accessories(items, group_id=product.group_id, product_id=product.pk)
+    accessories.links_of(product).delete()
+    owner = {"group_id": product.group_id} if product.group_id is not None else {"product": product}
+    ProductAccessory.objects.bulk_create(
+        ProductAccessory(accessory=item, position=position, **owner) for position, item in enumerate(items)
+    )
+
+
+def keep_accessories_on_group_change(product: Product, old_group_id: int | None) -> None:
+    """
+    Товар уже перешёл из группы old_group_id в product.group: аксессуары, которые он показывал,
+    не пропадают. Вошёл в группу — его собственные встают в конец списка группы (кроме
+    вариантов этой группы и уже бывших в списке); вышел — получает копию списка группы.
+    Из одной группы в другую — у товара просто список новой группы.
+    """
+    if old_group_id is None and product.group_id is not None:
+        group_links = ProductAccessory.objects.filter(group_id=product.group_id)
+        present = set(group_links.values_list("accessory_id", flat=True))
+        start = max(group_links.values_list("position", flat=True), default=-1) + 1
+        own = product.accessory_links.select_related("accessory").order_by("position", "id")
+        moved = [
+            link.accessory_id
+            for link in own
+            if link.accessory_id not in present and link.accessory.group_id != product.group_id
+        ]
+        ProductAccessory.objects.bulk_create(
+            ProductAccessory(group_id=product.group_id, accessory_id=accessory_id, position=start + offset)
+            for offset, accessory_id in enumerate(moved)
+        )
+        product.accessory_links.all().delete()
+    elif old_group_id is not None and product.group_id is None:
+        product.accessory_links.all().delete()  # старые свои (если остались) заменяет список группы
+        group_links = ProductAccessory.objects.filter(group_id=old_group_id).exclude(accessory_id=product.pk)
+        ProductAccessory.objects.bulk_create(
+            ProductAccessory(product=product, accessory_id=link.accessory_id, position=link.position)
+            for link in group_links
+        )
 
 
 # --- Категории ---

@@ -11,6 +11,7 @@ export type { Paginated, CursorPage } from './types'
 export { catalogApi, PRODUCT_SORTS } from './catalog'
 export type {
   Category,
+  AccessoryCard,
   CategoryBrief,
   ProductCard,
   ProductCharacteristic,
@@ -24,7 +25,7 @@ export { fetchHealth } from './health'
 export type { HealthResponse } from './health'
 export { authApi } from './auth'
 export type { User, LoginPayload, RegisterPayload } from './auth'
-export { adminApi, PRODUCT_PHOTOS_MAX } from './admin'
+export { adminApi, PRODUCT_ACCESSORIES_MAX, PRODUCT_PHOTOS_MAX } from './admin'
 export type {
   ShopBrief,
   Shop,

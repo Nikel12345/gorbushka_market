@@ -5,13 +5,14 @@ from django.forms.models import BaseInlineFormSet
 from apps.core.exceptions import BusinessError
 from apps.core.files import delete_file_on_commit
 
-from . import services, variants
+from . import accessories, services, variants
 from .categories import check_parent
 from .models import (
     Category,
     Characteristic,
     CharacteristicValue,
     Product,
+    ProductAccessory,
     ProductCharacteristic,
     ProductGroup,
     ProductImage,
@@ -70,12 +71,52 @@ class ProductCharacteristicInline(admin.TabularInline):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
+class AccessoryFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        chosen = [
+            form.cleaned_data["accessory"]
+            for form in self.forms
+            if form.cleaned_data.get("accessory") and not form.cleaned_data.get("DELETE")
+        ]
+        # self.instance — группа или товар без группы (с уже применёнными полями формы)
+        if isinstance(self.instance, ProductGroup):
+            owner = {"group_id": self.instance.pk, "product_id": None}
+        else:
+            owner = {"group_id": self.instance.group_id, "product_id": self.instance.pk}
+        try:
+            accessories.check_accessories(chosen, **owner)
+        except BusinessError as error:
+            raise forms.ValidationError(error.message) from error
+
+
+class AccessoryInline(admin.TabularInline):
+    """Аксессуары модели (catalog/accessories.py). Снятые с продажи можно оставить — на витрине они скрыты."""
+
+    model = ProductAccessory
+    formset = AccessoryFormSet
+    extra = 0
+    fields = ("accessory", "position")
+    autocomplete_fields = ("accessory",)
+
+
+class ProductAccessoryInline(AccessoryInline):
+    fk_name = "product"
+
+
+class GroupAccessoryInline(AccessoryInline):
+    fk_name = "group"
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     """
     Фото редактируются блоком «Фото товара». Обложка — кеш первого фото,
     её пересчитывает services.sync_cover после сохранения.
     Характеристики и группа вариантов проверяются по правилам catalog/variants.py.
+    Аксессуары товара группы вариантов — общие для группы, они на странице группы.
     """
 
     list_display = ("title", "category", "group", "price_usd", "price_rub", "quantity", "status", "created_at")
@@ -85,7 +126,12 @@ class ProductAdmin(admin.ModelAdmin):
     autocomplete_fields = ("category", "group")
     filter_horizontal = ("delivery_methods",)
     readonly_fields = ("image", "rating", "reviews_count", "created_at", "updated_at")
-    inlines = [ProductCharacteristicInline, ProductImageInline]
+    inlines = [ProductCharacteristicInline, ProductImageInline, ProductAccessoryInline]
+
+    def get_inlines(self, request, obj):
+        if obj is not None and obj.group_id is not None:
+            return [ProductCharacteristicInline, ProductImageInline]
+        return self.inlines
 
     @admin.display(description="цена, ₽")
     def price_rub(self, obj):
@@ -104,6 +150,8 @@ class ProductAdmin(admin.ModelAdmin):
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
         services.sync_cover(form.instance)
+        if "group" in form.changed_data:
+            services.keep_accessories_on_group_change(form.instance, old_group_id=form.initial.get("group"))
 
 
 class CategoryAdminForm(forms.ModelForm):
@@ -186,7 +234,10 @@ class GroupProductInline(admin.TabularInline):
 
 @admin.register(ProductGroup)
 class ProductGroupAdmin(admin.ModelAdmin):
-    """Категория — где лежат товары группы (с подкатегориями); оси — из характеристик, доступных в ней."""
+    """
+    Категория — где лежат товары группы (с подкатегориями); оси — из характеристик, доступных в ней.
+    Аксессуары — общие для всех товаров группы.
+    """
 
     form = ProductGroupAdminForm
     list_display = ("name", "category", "created_at")
@@ -194,4 +245,4 @@ class ProductGroupAdmin(admin.ModelAdmin):
     autocomplete_fields = ("category",)
     filter_horizontal = ("axes",)
     readonly_fields = ("created_at", "updated_at")
-    inlines = [GroupProductInline]
+    inlines = [GroupProductInline, GroupAccessoryInline]

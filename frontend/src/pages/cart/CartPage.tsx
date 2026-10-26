@@ -5,11 +5,12 @@ import { CartControl, useCart } from '@/features/cart'
 import { getErrorMessage, type CartLine } from '@/shared/api'
 import { formatPrice, pluralize } from '@/shared/lib'
 import { Button, EmptyState, ErrorState, FieldError, LinkButton, Loader, OrderSummary } from '@/shared/ui'
+import { CartRecommendations } from './CartRecommendations'
 import './CartPage.css'
 
 const ITEM_WORDS: [string, string, string] = ['товар', 'товара', 'товаров']
 
-/** Корзина: позиции слева, итог и переход к оформлению справа. */
+/** Корзина: позиции и «Рекомендуем» под ними слева, итог и переход к оформлению справа. */
 export function CartPage() {
   const { status, cart, refresh, clear } = useCart()
   const [confirmClear, setConfirmClear] = useState(false)
@@ -106,6 +107,8 @@ export function CartPage() {
             </Button>
           )}
         </OrderSummary>
+
+        <CartRecommendations />
       </div>
     </>
   )

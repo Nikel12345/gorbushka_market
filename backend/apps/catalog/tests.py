@@ -1103,6 +1103,8 @@ class ProductImagesTests(APITestCase):
             "images-INITIAL_FORMS": "3",
             "characteristics-TOTAL_FORMS": "0",
             "characteristics-INITIAL_FORMS": "0",
+            "accessory_links-TOTAL_FORMS": "0",
+            "accessory_links-INITIAL_FORMS": "0",
         }
         for index, image in enumerate(self.product.images.all()):
             data[f"images-{index}-id"] = image.id

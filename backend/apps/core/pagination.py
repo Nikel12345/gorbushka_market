@@ -48,14 +48,20 @@ class KeysetPagination(BasePagination):
     invalid_cursor_message = "Некорректный курсор. Начните ленту заново."
 
     def paginate_queryset(self, queryset, request, view=None):
-        sort_name = self._get_sort_name(request)
-        sort = self.sort_options[sort_name]
-        page_size = self._get_page_size(request)
+        return self.paginate_keyset(
+            queryset,
+            sort_name=self._get_sort_name(request),
+            cursor=request.query_params.get(self.cursor_query_param),
+            page_size=self._get_page_size(request),
+        )
 
+    def paginate_keyset(self, queryset, *, sort_name: str, cursor: str | None, page_size: int) -> list:
+        """Порция после позиции cursor (None — с начала); курсор следующей — в self.next_cursor."""
+        sort = self.sort_options[sort_name]
         direction = "-" if sort.descending else ""
         queryset = queryset.order_by(f"{direction}{sort.field}", f"{direction}pk")
 
-        cursor = self._decode_cursor(request, sort_name, sort, queryset.model)
+        cursor = self._decode_cursor(cursor, sort_name, sort, queryset.model)
         if cursor is not None:
             value, pk = cursor
             op = "lt" if sort.descending else "gt"
@@ -118,8 +124,7 @@ class KeysetPagination(BasePagination):
         payload = json.dumps({"s": sort_name, "v": str(value), "k": pk}, separators=(",", ":"))
         return base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
 
-    def _decode_cursor(self, request, sort_name: str, sort: SortOption, model):
-        raw = request.query_params.get(self.cursor_query_param)
+    def _decode_cursor(self, raw: str | None, sort_name: str, sort: SortOption, model):
         if not raw:
             return None
 

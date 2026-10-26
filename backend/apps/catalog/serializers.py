@@ -389,6 +389,36 @@ class ProductCardSerializer(serializers.ModelSerializer):
         return product.quantity > 0
 
 
+class AccessoryCardSerializer(ProductCardSerializer):
+    """Карточка в разделе «Аксессуары»: category — чтобы разложить их по вкладкам («Чехлы», «Стёкла»)."""
+
+    category = CategoryBriefSerializer(read_only=True)
+
+    class Meta(ProductCardSerializer.Meta):
+        fields = [*ProductCardSerializer.Meta.fields, "category"]
+        read_only_fields = fields
+
+
+class AccessoryListSerializer(serializers.Serializer):
+    """Новый список аксессуаров: ids — товары на продаже в нужном порядке, [] — убрать все."""
+
+    ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+
+    def validate_ids(self, ids):
+        ids = list(dict.fromkeys(ids))
+        # Предварительная проверка до запроса товаров; точная — в сервисе
+        limit = settings.PRODUCT_ACCESSORIES_MAX
+        if len(ids) > limit:
+            raise serializers.ValidationError(
+                f"У товара может быть не больше {limit} аксессуаров.", code="too_many_accessories"
+            )
+        found = Product.objects.on_sale().in_bulk(ids)
+        missing = [str(pk) for pk in ids if pk not in found]
+        if missing:
+            raise serializers.ValidationError(f"Нет товаров на продаже с id: {', '.join(missing)}.", code="does_not_exist")
+        return [found[pk] for pk in ids]
+
+
 class ProductPublicDetailSerializer(ProductCardSerializer):
     delivery_methods = DeliveryMethodSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)

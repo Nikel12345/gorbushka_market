@@ -1,0 +1,77 @@
+/* Аксессуары в карточке товара: подбор сверху, список таблицей */
+
+.accessories-field {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.accessories-field .product-editor__hint {
+  margin: 0;
+}
+
+/* --- Подбор: фильтры, затем выпадающий список найденных и «Добавить» --- */
+
+.accessory-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.accessory-picker__filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.accessory-picker__choose {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.accessory-picker__choose .ui-field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* В рост поля с превью товара */
+.accessory-picker__choose .ui-button {
+  min-height: 48px;
+}
+
+/* --- Список --- */
+
+.accessories__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.accessories__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.accessories__title a:hover {
+  color: var(--color-brand);
+}
+
+.accessories__image {
+  flex-shrink: 0;
+  width: 40px;
+  border-radius: var(--radius-sm);
+}
+
+.accessories__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+@media (max-width: 600px) {
+  .accessory-picker__filters {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,7 +8,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.catalog.models import Product, ProductGroup
+from apps.cart.models import Cart, CartItem
+from apps.catalog.models import Product, ProductAccessory, ProductGroup
 from apps.orders.models import Order, OrderItem, Purchase
 from apps.orders.test_checkout import CheckoutFixturesMixin
 from apps.shops.models import Shop
@@ -218,3 +219,91 @@ class BoughtTogetherApiTests(BoughtTogetherBase):
 
         with self.assertNumQueries(2):  # товар на продаже, карточки топа с магазином
             self.client.get(self.url(self.phone))
+
+
+class CartRecommendationsTests(APITestCase):
+    """В корзине телефон (группа из двух цветов) и ноутбук; у обоих есть аксессуары."""
+
+    url = reverse("me-cart-recommendations")
+
+    def setUp(self):
+        self.shop = Shop.objects.create(name="Магазин", address="Адрес")
+        self.buyer = User.objects.create_user(email="buyer@example.com", password="x")
+        phones = ProductGroup.objects.create(name="Телефон")
+        self.phone = self.make("Телефон чёрный", group=phones)
+        self.phone_white = self.make("Телефон белый", group=phones)
+        self.laptop = self.make("Ноутбук")
+        self.case, self.glass, self.charger, self.bag = (self.make(t) for t in ["Чехол", "Стекло", "Зарядка", "Сумка"])
+        self.speaker = self.make("Колонка")
+        self.cable = self.make("Кабель")
+        for position, accessory in enumerate([self.case, self.glass, self.charger]):
+            ProductAccessory.objects.create(group=phones, accessory=accessory, position=position)
+        for position, accessory in enumerate([self.charger, self.bag]):
+            ProductAccessory.objects.create(product=self.laptop, accessory=accessory, position=position)
+        cart = Cart.objects.create(user=self.buyer)
+        for product in [self.phone, self.laptop]:
+            CartItem.objects.create(cart=cart, product=product, quantity=1)
+        self.client.force_login(self.buyer)
+
+    def make(self, title, **kwargs):
+        return Product.objects.create(shop=self.shop, title=title, price_usd=Decimal("10"), **kwargs)
+
+    def titles(self, **params):
+        response = self.client.get(self.url, params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        return [card["title"] for card in response.data["results"]], response.data["next_cursor"]
+
+    def test_accessories_in_turn_then_feed(self):
+        titles, cursor = self.titles()
+
+        # Первые аксессуары каждого товара, затем вторые; повтор зарядки пропущен.
+        # Дальше лента, новые сверху — без товаров корзины и другого цвета телефона
+        self.assertEqual(titles, ["Чехол", "Зарядка", "Стекло", "Сумка", "Кабель", "Колонка"])
+        self.assertIsNone(cursor)
+
+    def test_pages_join_without_gaps(self):
+        full, _ = self.titles()
+        for page_size in [1, 2, 3, 4, 5]:
+            with self.subTest(page_size=page_size):
+                collected, cursor = self.titles(page_size=page_size)
+                while cursor:
+                    page, cursor = self.titles(page_size=page_size, cursor=cursor)
+                    self.assertLessEqual(len(page), page_size)
+                    collected += page
+                self.assertEqual(collected, full)
+
+    def test_accessory_kept_when_its_variant_is_in_cart(self):
+        # Красный геймпад уже в корзине, но белый — аксессуар приставки: второй игрок
+        pads = ProductGroup.objects.create(name="Геймпад")
+        red = self.make("Геймпад красный", group=pads)
+        white = self.make("Геймпад белый", group=pads)
+        console = self.make("Приставка")
+        ProductAccessory.objects.create(product=console, accessory=white, position=0)
+        for product in [console, red]:
+            CartItem.objects.create(cart=self.buyer.cart, product=product, quantity=1)
+
+        titles, _ = self.titles()
+
+        self.assertEqual(titles[:3], ["Чехол", "Зарядка", "Геймпад белый"])
+        self.assertNotIn("Телефон белый", titles)  # а в ленте вариантов товаров корзины по-прежнему нет
+
+    def test_guest_without_cart_gets_feed(self):
+        self.client.logout()
+
+        titles, _ = self.titles()
+
+        self.assertEqual(len(titles), Product.objects.count())
+
+    def test_off_sale_cart_product_has_no_accessories(self):
+        self.laptop.status = Product.Status.ARCHIVED
+        self.laptop.save()
+
+        titles, _ = self.titles()
+
+        self.assertEqual(titles[:3], ["Чехол", "Стекло", "Зарядка"])
+
+    def test_bad_cursor(self):
+        response = self.client.get(self.url, {"cursor": "broken"})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("cursor", response.data)

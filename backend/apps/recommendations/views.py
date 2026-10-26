@@ -2,8 +2,12 @@ from django.http import Http404
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 
+from apps.cart.services import get_request_cart
 from apps.catalog.models import Product
 from apps.catalog.serializers import ProductCardSerializer
+
+from .cart import cart_recommendations
+from .pagination import CartRecommendationsPagination
 
 
 class BoughtTogetherView(generics.ListAPIView):
@@ -26,3 +30,18 @@ class BoughtTogetherView(generics.ListAPIView):
             .select_related("shop")
             .order_by("bought_with__position")
         )
+
+
+class CartRecommendationsView(generics.GenericAPIView):
+    """
+    «Рекомендуем» в корзине (покупателя или гостя): сначала аксессуары товаров корзины, потом лента
+    главной. Порции по курсору, как в ленте: {next_cursor, results}. См. recommendations/cart.py.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = ProductCardSerializer
+    pagination_class = CartRecommendationsPagination
+
+    def get(self, request):
+        products = self.paginator.paginate_recommendations(cart_recommendations(get_request_cart(request)), request)
+        return self.get_paginated_response(self.get_serializer(products, many=True).data)
