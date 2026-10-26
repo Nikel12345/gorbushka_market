@@ -5,6 +5,9 @@
 2. quote          (POST /me/checkout/quote/) — покупатель выбрал способы: отправки и итоговая сумма.
 3. place_purchase (POST /me/checkout/)       — оформить покупку одной транзакцией.
 
+Оформить может и гость (корзина по сессии): на последнем шаге он указывает почту и пароль,
+place_guest_purchase оформляет покупку в его аккаунт или в новый — в одной транзакции.
+
 Способ доставки покупатель выбирает у каждой позиции. Позиции с одинаковой
 доставкой объединяются в отправку (Shipment), и доставка оплачивается один раз
 за отправку, а не за каждую позицию (см. shipment_key):
@@ -35,7 +38,9 @@ from apps.delivery.models import DeliveryMethod
 from apps.delivery.services import DeliverySlot, validate_slot
 from apps.recommendations import services as bought_together
 from apps.shops.models import Shop
-from apps.wallet.services import get_wallet
+from apps.users.models import User
+from apps.users.services import register_user, update_profile
+from apps.wallet.services import WalletSummary, get_wallet
 
 from . import payments
 from .models import Purchase, Shipment
@@ -73,6 +78,7 @@ class CheckoutPreview:
     balance: Decimal  # доступные деньги — для оплаты с баланса
     bonus: Decimal  # бонусы — переключатель «оплатить бонусами»
     bonus_max_share: Decimal  # какую часть итога можно оплатить бонусами
+    guest: bool = False  # оформляет гость: баланса нет
 
     @property
     def items(self) -> list[CheckoutLine]:
@@ -92,7 +98,11 @@ class CheckoutPreview:
 
     @property
     def payment_methods(self) -> list[dict]:
-        return [{"code": code, "name": name} for code, name in Purchase.PaymentMethod.choices]
+        return [
+            {"code": code, "name": name}
+            for code, name in Purchase.PaymentMethod.choices
+            if not (self.guest and code == Purchase.PaymentMethod.BALANCE)
+        ]
 
 
 def _problem(line: CartLine, methods: tuple) -> CheckoutProblem | None:
@@ -105,13 +115,13 @@ def _problem(line: CartLine, methods: tuple) -> CheckoutProblem | None:
     return None
 
 
-def _checkout_lines(user) -> list[CheckoutLine]:
-    cart = get_cart(user)
-    prefetch_related_objects([line.product for line in cart.lines], "delivery_methods")
+def _checkout_lines(cart: Cart | None) -> list[CheckoutLine]:
+    content = get_cart(cart)
+    prefetch_related_objects([line.product for line in content.lines], "delivery_methods")
 
     allowed_by_shop: dict[int, set[int]] = {}
     lines = []
-    for line in cart.lines:
+    for line in content.lines:
         shop = line.product.shop
         if shop.id not in allowed_by_shop:
             allowed_by_shop[shop.id] = set(
@@ -130,13 +140,15 @@ def _checkout_lines(user) -> list[CheckoutLine]:
     return lines
 
 
-def get_checkout(user) -> CheckoutPreview:
-    wallet = get_wallet(user)
+def get_checkout(cart: Cart | None, user: User | None) -> CheckoutPreview:
+    """user=None — гость: баланса и бонусов у него нет."""
+    wallet = get_wallet(user) if user is not None else WalletSummary(Decimal("0.00"), Decimal("0.00"))
     return CheckoutPreview(
-        lines=_checkout_lines(user),
+        lines=_checkout_lines(cart),
         balance=wallet.available,
         bonus=wallet.bonus,
         bonus_max_share=settings.BONUS_MAX_SHARE,
+        guest=user is None,
     )
 
 
@@ -234,10 +246,12 @@ def _build_plan(lines: list[CheckoutLine], choices: Iterable[DeliveryChoice]) ->
     return CheckoutPlan(lines=list(buyable.values()), shipments=list(shipments.values()))
 
 
-def quote(user, choices: Iterable[DeliveryChoice], use_bonus: bool = False) -> CheckoutPlan:
-    """Отправки и суммы для выбранных способов. Ничего не сохраняет."""
-    plan = _build_plan(_checkout_lines(user), choices)
-    if use_bonus:
+def quote(
+    cart: Cart | None, user: User | None, choices: Iterable[DeliveryChoice], use_bonus: bool = False
+) -> CheckoutPlan:
+    """Отправки и суммы для выбранных способов. Ничего не сохраняет. user=None — гость, без бонусов."""
+    plan = _build_plan(_checkout_lines(cart), choices)
+    if use_bonus and user is not None:
         plan = replace(plan, bonus_amount=payments.bonus_to_use(user, plan.total_amount))
     return plan
 
@@ -279,7 +293,8 @@ def _shipment_address(shipment: PlannedShipment, buyer_address: str) -> str:
 
 @transaction.atomic
 def place_purchase(
-    user,
+    cart: Cart | None,
+    user: User,
     *,
     choices: Iterable[DeliveryChoice],
     payment_method: str,
@@ -287,25 +302,28 @@ def place_purchase(
     slots: Iterable[SlotChoice] = (),
     address: str = "",
     comment: str = "",
+    phone: str = "",
     use_bonus: bool = False,
     now: datetime.datetime | None = None,
 ) -> Purchase:
     """
-    Оформляет покупку: заказы магазинов, отправки, списание остатков, оплата,
-    удаление купленного из корзины. Всё в одной транзакции — любая ошибка
-    (нет остатка, не хватает баланса, слот занят) откатывает всё целиком.
+    Оформляет покупку из корзины cart на покупателя user: заказы магазинов, отправки,
+    списание остатков, оплата, удаление купленного из корзины. Всё в одной транзакции —
+    любая ошибка (нет остатка, не хватает баланса, слот занят) откатывает всё целиком.
 
     expected_total — сумма, которую видел покупатель (итог до бонусов). Если корзина
     или цены успели измениться — BusinessConflict (409), покупатель должен проверить заново.
+    phone — телефон для связи по заказу: указан — сохраняется в профиль покупателя.
     use_bonus — оплатить часть бонусами (см. orders.payments).
     """
     # Блокировки: корзина — повторное «Оформить» ждёт первое и видит уже пустую корзину;
     # затем товары в едином порядке (магазин, id), как и в create_order, — без дедлоков.
-    Cart.objects.select_for_update().filter(user=user).first()
-    product_ids = list(CartItem.objects.filter(cart__user=user).values_list("product_id", flat=True))
+    if cart is not None:
+        cart = Cart.objects.select_for_update().filter(pk=cart.pk).first()
+    product_ids = list(CartItem.objects.filter(cart=cart).values_list("product_id", flat=True)) if cart else []
     list(Product.objects.select_for_update().filter(id__in=product_ids).order_by("shop_id", "id"))
 
-    plan = _build_plan(_checkout_lines(user), choices)
+    plan = _build_plan(_checkout_lines(cart), choices)
     slot_by_method = _validate_slots(plan, slots, now)
 
     address = address.strip()
@@ -355,7 +373,21 @@ def place_purchase(
 
     payments.charge_purchase(purchase, use_bonus=use_bonus)
 
-    CartItem.objects.filter(cart__user=user, product_id__in=[line.product.id for line in plan.lines]).delete()
+    CartItem.objects.filter(cart=cart, product_id__in=[line.product.id for line in plan.lines]).delete()
+    if phone:
+        update_profile(user, phone=phone)
     # «С этим товаром часто покупают»: сейчас или по cron — решает сама функция
     bought_together.on_purchase_placed(purchase)
     return purchase
+
+
+@transaction.atomic
+def place_guest_purchase(cart: Cart | None, *, account: User | None, email: str, password: str, **purchase) -> Purchase:
+    """
+    Гость оформляет покупку из своей корзины: в свой аккаунт (account — пароль уже проверен,
+    см. users.serializers.CheckoutAccountSerializer) или в новый с этой почтой и паролем.
+    Новый аккаунт создаётся в той же транзакции: покупка не оформилась — аккаунта нет.
+    Войти в аккаунт после успеха — дело view (остаток корзины гостя перейдёт в корзину аккаунта).
+    """
+    buyer = account or register_user(email=email, password=password)
+    return place_purchase(cart, buyer, **purchase)

@@ -63,7 +63,7 @@ class MeView(APIView):
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):
-    """Профиль на странице пользователя: GET — данные, PATCH — имя/фамилия."""
+    """Профиль на странице пользователя: GET — данные, PATCH — имя, фамилия, телефон."""
 
     permission_classes = [IsAuthenticated]
     http_method_names = ["get", "patch", "head", "options"]

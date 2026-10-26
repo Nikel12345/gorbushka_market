@@ -198,6 +198,8 @@ export interface OrderBuyer {
   email: string
   first_name: string
   last_name: string
+  /** "+79991234567"; пусто — не указан */
+  phone: string
 }
 
 export interface OrderItem {

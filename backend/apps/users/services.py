@@ -10,13 +10,16 @@ from .models import User
 
 
 @transaction.atomic
-def register_user(*, email: str, password: str, first_name: str = "", last_name: str = "") -> User:
+def register_user(
+    *, email: str, password: str, first_name: str = "", last_name: str = "", phone: str = ""
+) -> User:
     # Здесь же в будущем: создание профиля, отправка письма подтверждения и т.п.
     return User.objects.create_user(
         email=email,
         password=password,
         first_name=first_name,
         last_name=last_name,
+        phone=phone,
     )
 
 

@@ -13,6 +13,8 @@ class User(AbstractUser):
 
     username = None
     email = models.EmailField("email", unique=True)
+    # Для связи по заказам. Хранится нормализованным: +79991234567 (см. serializers.PhoneField)
+    phone = models.CharField("телефон", max_length=20, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

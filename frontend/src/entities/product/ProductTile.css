@@ -122,6 +122,29 @@
   color: var(--color-text-secondary);
 }
 
+/* Оценка в строке под названием */
+.product-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-rating__star {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: #f5a623;
+}
+
+.product-rating__star--empty {
+  fill: var(--color-input-border);
+}
+
+.product-rating__value {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 @media (max-width: 600px) {
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

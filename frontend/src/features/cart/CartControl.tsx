@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { getErrorMessage } from '@/shared/api'
 import { useCart } from './useCart'
 import './CartControl.css'
@@ -19,16 +19,18 @@ const COMPACT_ERROR_MS = 4000
 
 /**
  * «В корзину» и количество этого товара в корзине. Пока товара в корзине нет — кнопка,
- * потом — счётчик «− N +». Гостя отправляет на вход и возвращает обратно.
+ * потом — счётчик «− N +», а на странице товара под ним — «Перейти в корзину».
+ * Работает и у гостя: входить не нужно до оформления заказа.
  */
 export function CartControl({ productId, variant = 'full', canBuy = true, max }: CartControlProps) {
   const cart = useCart()
-  const navigate = useNavigate()
-  const location = useLocation()
   const [error, setError] = useState<string | null>(null)
+  // Смену «кнопка ↔ счётчик» анимируем только после нажатия, а не при первой отрисовке и догрузке корзины
+  const [animated, setAnimated] = useState(false)
 
   const compact = variant === 'compact'
   const quantity = cart.quantityOf(productId)
+  const inCart = quantity > 0
   const busy = cart.isPending(productId) || cart.status === 'loading'
   const canAddMore = canBuy && (max === undefined || quantity < max)
 
@@ -40,6 +42,7 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
 
   async function change(action: () => Promise<void>) {
     setError(null)
+    setAnimated(true)
     try {
       await action()
     } catch (err) {
@@ -47,13 +50,7 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
     }
   }
 
-  function handleAdd() {
-    if (cart.status === 'anonymous') {
-      navigate('/login', { state: { from: location.pathname + location.search } })
-      return
-    }
-    void change(() => cart.add(productId))
-  }
+  const className = `cart-control cart-control--${variant}${animated ? ' cart-control--animated' : ''}`
 
   const errorNode = error && (
     <span className="cart-control__error" role="alert">
@@ -61,29 +58,42 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
     </span>
   )
 
+  // Страница товара: «Перейти в корзину» под счётчиком. Есть всегда, чтобы плавно раскрываться и сворачиваться
+  const goToCart = variant === 'full' && (
+    <div className={inCart ? 'cart-control__go cart-control__go--open' : 'cart-control__go'} inert={!inCart}>
+      <div className="cart-control__go-inner">
+        <Link to="/cart" className="cart-control__go-link">
+          Перейти в корзину
+        </Link>
+      </div>
+    </div>
+  )
+
   // Товара нет в корзине
-  if (quantity === 0) {
+  if (!inCart) {
     if (!canBuy) {
       return compact ? null : (
-        <div className="cart-control cart-control--full">
+        <div className={className}>
           <button type="button" className="cart-control__add cart-control__add--unavailable" disabled>
             Нет в наличии
           </button>
+          {goToCart}
         </div>
       )
     }
     return (
-      <div className={`cart-control cart-control--${variant}`}>
+      <div className={className}>
         <button
           type="button"
           className="cart-control__add"
-          onClick={handleAdd}
+          onClick={() => change(() => cart.add(productId))}
           disabled={busy}
           aria-label={compact ? 'Добавить в корзину' : undefined}
           title={compact ? 'Добавить в корзину' : undefined}
         >
           {compact ? <CartPlusIcon /> : 'Добавить в корзину'}
         </button>
+        {goToCart}
         {errorNode}
       </div>
     )
@@ -91,8 +101,7 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
 
   // Уже в корзине: «− N +»
   return (
-    <div className={`cart-control cart-control--${variant}`}>
-      {variant === 'full' && <span className="cart-control__label">В корзине</span>}
+    <div className={className}>
       <div className="cart-control__stepper" role="group" aria-label="Количество в корзине">
         <button
           type="button"
@@ -118,6 +127,7 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
           +
         </button>
       </div>
+      {goToCart}
       {variant === 'full' && !canAddMore && canBuy && <span className="cart-control__hint">Больше нет в наличии</span>}
       {errorNode}
     </div>

@@ -54,11 +54,6 @@
   color: var(--color-text-secondary);
 }
 
-.cart-control__label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
 .cart-control--full .cart-control__stepper {
   display: flex;
   align-items: center;
@@ -98,6 +93,77 @@
 .cart-control__hint {
   font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+/* «Перейти в корзину» под счётчиком: раскрывается по высоте (0fr → 1fr) вместе с отступом от счётчика */
+.cart-control__go {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* Свёрнуто — гасим gap колонки, чтобы под кнопкой не оставалось пустой полосы */
+  margin-top: -6px;
+  opacity: 0;
+}
+
+.cart-control__go--open {
+  grid-template-rows: 1fr;
+  margin-top: 0;
+  opacity: 1;
+}
+
+.cart-control__go-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cart-control__go-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.cart-control__go-link:hover {
+  background: var(--color-brand-dark);
+}
+
+/* Рамка фокуса внутри: снаружи её обрезал бы раскрывающийся блок */
+.cart-control__go-link:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.6);
+}
+
+/* Страница может поставить счётчик и «Перейти в корзину» в строку — см. pages/product/ProductPage.css */
+
+/* Анимации — только если в системе не просили их убрать */
+@media (prefers-reduced-motion: no-preference) {
+  .cart-control__go {
+    transition:
+      grid-template-rows 0.25s ease,
+      margin-top 0.25s ease,
+      opacity 0.2s ease;
+  }
+
+  /* Кнопка ↔ счётчик после нажатия: лёгкое «проявление» на месте */
+  .cart-control--full.cart-control--animated > .cart-control__add,
+  .cart-control--full.cart-control--animated > .cart-control__stepper {
+    animation: cart-control-swap 0.2s ease-out;
+  }
+}
+
+@keyframes cart-control-swap {
+  from {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
 }
 
 /* --- Маленькая: угол плитки --- */

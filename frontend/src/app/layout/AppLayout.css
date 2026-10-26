@@ -354,17 +354,34 @@
 }
 
 @media (max-width: 720px) {
-  /* Две строки: логотип и разделы, под ними поиск во всю ширину */
+  /*
+   * Две строки: логотип и разделы, под ними поиск во всю ширину. Сетка, а не перенос:
+   * логотип всегда в строке с разделами и уменьшается под оставшееся место
+   */
   .market-bar__inner {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'logo nav'
+      'search search';
     gap: 0 8px;
     height: auto;
     padding: 4px 12px 10px;
   }
 
+  .market-bar__inner > .app-logo {
+    --logo-height: 28px;
+    grid-area: logo;
+    justify-self: start;
+    min-width: 0;
+  }
+
+  .market-nav {
+    grid-area: nav;
+  }
+
   .market-search {
-    order: 1;
-    flex-basis: 100%;
+    grid-area: search;
     max-width: none;
   }
 

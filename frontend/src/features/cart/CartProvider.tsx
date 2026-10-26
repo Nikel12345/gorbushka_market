@@ -7,13 +7,15 @@ import { CartContext, type CartContextValue, type CartStatus } from './CartConte
 const CLEAR_KEY = 0
 
 /**
- * Корзина текущего пользователя — одна на приложение: значок в шапке, кнопки в ленте
+ * Корзина текущего пользователя или гостя — одна на приложение: значок в шапке, кнопки в ленте
  * и на странице товара видят одно и то же. Любое изменение возвращает корзину целиком,
  * её и показываем — без ручного пересчёта на клиенте.
+ * Гостевая корзина живёт в сессии на сервере; при входе сервер переносит её в корзину аккаунта.
  */
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user, status: authStatus } = useAuth()
-  const userId = user?.id ?? null
+  // Чья корзина: id пользователя, null — гость, undefined — ещё не знаем (сессия проверяется)
+  const owner = authStatus === 'loading' ? undefined : (user?.id ?? null)
 
   const [cart, setCart] = useState<Cart | null>(null)
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -35,21 +37,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
-  // Вошёл другой пользователь или вышел — корзина своя у каждого
-  const [loadedFor, setLoadedFor] = useState<number | null>(null)
-  if (userId !== loadedFor) {
-    setLoadedFor(userId)
+  // Вошёл (корзина гостя уже перенесена в аккаунт), вышел или вошёл другой — перечитываем
+  const [loadedFor, setLoadedFor] = useState<number | null | undefined>(undefined)
+  if (owner !== loadedFor) {
+    setLoadedFor(owner)
     setCart(null)
     setLoadStatus('loading')
   }
 
   useEffect(() => {
-    if (userId === null) {
+    if (owner === undefined) {
       versionRef.current++
       return
     }
     refresh()
-  }, [userId, refresh])
+  }, [owner, refresh])
 
   const run = useCallback(
     async (productId: number, request: () => Promise<Cart>) => {
@@ -82,9 +84,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo<CartContextValue>(() => {
-    let status: CartStatus = loadStatus
-    if (authStatus === 'anonymous') status = 'anonymous'
-    else if (authStatus === 'loading') status = 'loading'
+    const status: CartStatus = authStatus === 'loading' ? 'loading' : loadStatus
 
     return {
       status,

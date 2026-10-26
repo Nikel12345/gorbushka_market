@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { ProductTile } from '@/entities/product'
+import { ProductRating, ProductTile } from '@/entities/product'
 import { CartControl } from '@/features/cart'
 import { catalogApi } from '@/shared/api'
 import { useRequest } from '@/shared/lib'
@@ -28,6 +28,7 @@ export function BoughtTogether({ productId }: { productId: number }) {
               product={product}
               to={`/products/${product.id}`}
               badge={!product.in_stock && 'Нет в наличии'}
+              meta={<ProductRating value={product.rating} count={product.reviews_count} />}
               action={<CartControl productId={product.id} variant="compact" canBuy={product.in_stock} />}
             />
           </li>

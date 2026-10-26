@@ -41,7 +41,13 @@ export function formatPersonName(person: PersonLike): string {
   return [person.first_name, person.last_name].filter(Boolean).join(' ') || person.email
 }
 
-const ratingFormatter = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+/** "+79991234567" → "+7 999 123-45-67"; другие номера — как есть */
+export function formatPhone(phone: string): string {
+  const match = /^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/.exec(phone)
+  return match ? `+7 ${match[1]} ${match[2]}-${match[3]}-${match[4]}` : phone
+}
+
+const ratingFormatter =new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 /** Средняя оценка: "4.75" → "4,8", 5 → "5,0" */
 export function formatRating(value: string | number): string {

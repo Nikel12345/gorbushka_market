@@ -1,6 +1,10 @@
+import datetime
 from decimal import Decimal
 
+from django.conf import settings
+from django.core.cache import cache
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
@@ -9,7 +13,7 @@ from apps.shops.models import Shop
 from apps.users.models import User
 
 from .models import Cart, CartItem
-from .services import MAX_CART_POSITIONS
+from .services import MAX_CART_POSITIONS, delete_stale_guest_carts
 
 
 class CartTestCase(APITestCase):
@@ -41,13 +45,6 @@ class CartTestCase(APITestCase):
 
 
 class CartReadTests(CartTestCase):
-    def test_requires_authentication(self):
-        self.client.logout()
-
-        for method, url in [("get", self.cart_url), ("post", self.items_url), ("patch", self.item_url(self.phone))]:
-            with self.subTest(method=method):
-                self.assertEqual(getattr(self.client, method)(url).status_code, status.HTTP_403_FORBIDDEN)
-
     def test_empty_cart_without_creating_it(self):
         response = self.client.get(self.cart_url)
 
@@ -109,8 +106,8 @@ class CartReadTests(CartTestCase):
         for product in products:
             self.add(product)
 
-        # сессия + пользователь + позиции с товарами и магазинами
-        with self.assertNumQueries(3):
+        # сессия + пользователь + корзина + позиции с товарами и магазинами
+        with self.assertNumQueries(4):
             self.client.get(self.cart_url)
 
 
@@ -315,3 +312,87 @@ class CartAdminTests(CartTestCase):
         for url in [reverse("admin:cart_cart_changelist"), reverse("admin:cart_cart_change", args=[cart.id])]:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, status.HTTP_200_OK)
+
+
+class GuestCartTests(CartTestCase):
+    """Корзина гостя — по сессии; при входе переходит в корзину аккаунта."""
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()  # лимит попыток входа
+        self.client.logout()
+
+    def lines(self, client=None):
+        data = (client or self.client).get(self.cart_url).data
+        return [(line["product"]["id"], line["quantity"]) for line in data["items"]]
+
+    def test_guest_cart_lives_in_session(self):
+        self.assertEqual(self.add(self.phone, 2).status_code, status.HTTP_201_CREATED)
+        self.set_quantity(self.phone, 3)
+        self.add(self.case)
+
+        self.assertEqual(self.lines(), [(self.phone.id, 3), (self.case.id, 1)])
+        self.assertIsNone(Cart.objects.get().user)
+        # у другого гостя — своя корзина
+        self.assertEqual(self.lines(APIClient()), [])
+
+    def test_guest_without_cart(self):
+        self.assertEqual(self.lines(), [])
+        self.assertEqual(self.set_quantity(self.phone, 1).status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(self.client.delete(self.item_url(self.phone)).status_code, status.HTTP_200_OK)
+        self.assertFalse(Cart.objects.exists())
+
+    def test_guest_cart_moves_to_account_on_login(self):
+        self.add(self.phone, 2)
+        self.add(self.case)
+        CartItem.objects.create(cart=Cart.objects.create(user=self.buyer), product=self.phone, quantity=1)
+
+        response = self.client.post(
+            reverse("auth-login"), {"email": "buyer@example.com", "password": "x"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # одинаковые товары сложились, корзина гостя удалена
+        self.assertEqual(self.quantities(), {self.phone.id: 3, self.case.id: 1})
+        self.assertEqual(Cart.objects.get().user, self.buyer)
+        self.assertEqual(dict(self.lines()), {self.phone.id: 3, self.case.id: 1})
+
+    def test_guest_cart_moves_to_new_account_on_registration(self):
+        self.add(self.case, 2)
+
+        response = self.client.post(
+            reverse("auth-register"), {"email": "new@example.com", "password": "Str0ng-pass!"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self.lines(), [(self.case.id, 2)])
+        self.assertEqual(Cart.objects.get().user.email, "new@example.com")
+
+    def test_after_logout_guest_cart_is_empty(self):
+        self.client.force_login(self.buyer)
+        self.add(self.phone)
+        self.client.post(reverse("auth-logout"))
+
+        self.assertEqual(self.lines(), [])
+        self.assertEqual(self.quantities(), {self.phone.id: 1})
+
+    def test_guest_modifications_require_csrf_token(self):
+        client = APIClient(enforce_csrf_checks=True)
+
+        response = client.post(self.items_url, {"product_id": self.phone.id}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(Cart.objects.exists())
+
+    def test_stale_guest_carts_are_deleted(self):
+        self.add(self.phone)
+        stale = Cart.objects.get()
+        fresh = Cart.objects.create()
+        long_ago = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE + 60)
+        Cart.objects.filter(pk=stale.pk).update(updated_at=long_ago)
+        CartItem.objects.filter(cart=stale).update(updated_at=long_ago)
+        Cart.objects.create(user=self.buyer)
+        Cart.objects.filter(user=self.buyer).update(updated_at=long_ago)
+
+        self.assertEqual(delete_stale_guest_carts(), 1)
+        self.assertEqual(set(Cart.objects.values_list("pk", flat=True)), {fresh.pk, Cart.objects.get(user=self.buyer).pk})

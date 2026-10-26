@@ -1,6 +1,14 @@
 export { useRequest } from './useRequest'
 export type { RequestState } from './useRequest'
-export { formatPrice, formatDate, formatDateTime, formatPersonName, formatRating, pluralize } from './format'
+export {
+  formatPrice,
+  formatDate,
+  formatDateTime,
+  formatPersonName,
+  formatPhone,
+  formatRating,
+  pluralize,
+} from './format'
 export { parsePage, updateSearchParams } from './searchParams'
 export { useObjectUrl } from './useObjectUrl'
 export { useCursorFeed } from './useCursorFeed'

@@ -9,7 +9,7 @@ import {
 } from '@/entities/order'
 import { ProductImage } from '@/entities/product'
 import { adminApi, getErrorMessage, type Order, type OrderStatusOption } from '@/shared/api'
-import { formatDateTime, formatPersonName, formatPrice } from '@/shared/lib'
+import { formatDateTime, formatPersonName, formatPhone, formatPrice } from '@/shared/lib'
 import { Button, Chip, FieldError } from '@/shared/ui'
 
 interface SellerOrderCardProps {
@@ -121,6 +121,12 @@ export function SellerOrderCard({ order, onChange }: SellerOrderCardProps) {
             <>
               {' · '}
               <a href={`mailto:${order.buyer.email}`}>{order.buyer.email}</a>
+            </>
+          )}
+          {order.buyer.phone && (
+            <>
+              {' · '}
+              <a href={`tel:${order.buyer.phone}`}>{formatPhone(order.buyer.phone)}</a>
             </>
           )}
         </dd>

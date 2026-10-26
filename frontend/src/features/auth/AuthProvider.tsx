@@ -11,13 +11,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus(next ? 'authenticated' : 'anonymous')
   }, [])
 
+  const refresh = useCallback(
+    () =>
+      authApi
+        .me()
+        .then(applyUser)
+        .catch(() => applyUser(null)),
+    [applyUser],
+  )
+
   // Восстанавливаем сессию при загрузке приложения
   useEffect(() => {
-    authApi
-      .me()
-      .then(applyUser)
-      .catch(() => applyUser(null))
-  }, [applyUser])
+    void refresh()
+  }, [refresh])
 
   const login = useCallback(
     async (payload: LoginPayload) => {
@@ -43,8 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyUser])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, register, logout }),
-    [user, status, login, register, logout],
+    () => ({ user, status, login, register, logout, refresh }),
+    [user, status, login, register, logout, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

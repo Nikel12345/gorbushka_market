@@ -1,12 +1,12 @@
 import { createContext } from 'react'
 import type { Cart } from '@/shared/api'
 
-/** anonymous — корзины нет (не вошёл), loading — ещё не знаем, что в ней */
-export type CartStatus = 'anonymous' | 'loading' | 'ready' | 'error'
+/** loading — ещё не знаем, что в корзине. Корзина есть и у гостя (по сессии на сервере). */
+export type CartStatus = 'loading' | 'ready' | 'error'
 
 export interface CartContextValue {
   status: CartStatus
-  /** Корзина целиком — для страницы корзины. null, пока не загружена или гость. */
+  /** Корзина целиком — для страницы корзины. null, пока не загружена. */
   cart: Cart | null
   /** Сколько штук всего лежит в корзине — для значка в шапке */
   itemsCount: number

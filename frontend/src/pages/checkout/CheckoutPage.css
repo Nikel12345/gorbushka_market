@@ -66,6 +66,44 @@
   color: var(--color-danger);
 }
 
+/* --- Данные покупателя --- */
+
+/* «войдите» — как ссылки на страницах входа */
+.checkout-section__hint a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.checkout-section__hint a:hover {
+  text-decoration: underline;
+}
+
+.checkout-customer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 0;
+}
+
+.checkout-customer dt {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.checkout-customer dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* Почта и пароль — в строку, на телефоне — друг под другом */
+.checkout-customer__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
 /* --- Позиции --- */
 
 .checkout-items {

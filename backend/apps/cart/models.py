@@ -7,13 +7,19 @@ from apps.core.models import TimeStampedModel
 
 class Cart(TimeStampedModel):
     """
-    Корзина пользователя. Отдельная модель (а не просто строки с user_id), чтобы
-    было куда положить промокод, анонимную корзину по сессии и т.п.
+    Корзина пользователя или гостя. Отдельная модель (а не просто строки с user_id), чтобы
+    было куда положить промокод, гостевую корзину и т.п.
+
+    Гостевая корзина — без пользователя, её id лежит в сессии гостя (cart.services.get_request_cart).
+    При входе она переливается в корзину пользователя (cart.services.merge_guest_cart).
     """
 
+    # null — корзина гостя
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="cart",
         verbose_name="пользователь",
     )
@@ -23,7 +29,7 @@ class Cart(TimeStampedModel):
         verbose_name_plural = "корзины"
 
     def __str__(self):
-        return f"Корзина {self.user}"
+        return f"Корзина {self.user}" if self.user_id else f"Корзина гостя #{self.pk}"
 
 
 class CartItem(TimeStampedModel):

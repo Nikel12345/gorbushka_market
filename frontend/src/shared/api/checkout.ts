@@ -19,13 +19,14 @@ export interface CheckoutUnavailableItem extends CartLine {
   problem: { code: string; detail: string }
 }
 
-/** GET /me/checkout/ (CheckoutPreviewSerializer) */
+/** GET /me/checkout/ (CheckoutPreviewSerializer). Доступна и гостю — из его корзины. */
 export interface CheckoutPreview {
   items: CheckoutItem[]
   unavailable_items: CheckoutUnavailableItem[]
   items_total: string
+  /** У гостя «С баланса» нет */
   payment_methods: { code: PaymentMethodCode; name: string }[]
-  /** Деньги на балансе — для оплаты «С баланса» */
+  /** Деньги на балансе — для оплаты «С баланса» (у гостя 0) */
   balance: string
   /** Бонусы — переключатель «оплатить бонусами» */
   bonus: string
@@ -76,6 +77,14 @@ export interface CheckoutPayload {
   address?: string
   payment_method: PaymentMethodCode
   comment?: string
+  /** Телефон для связи: указан — сохраняется в профиль */
+  phone?: string
+  /**
+   * Только гость: аккаунт, в который оформить. Есть аккаунт с этой почтой — пароль должен подойти,
+   * нет — создаётся новый. После оформления гость уже вошёл.
+   */
+  email?: string
+  password?: string
   /** Оплатить часть бонусами (не больше bonus_max_share итога) */
   use_bonus?: boolean
   /** Итог до бонусов, который видел покупатель; не совпал с пересчитанным — 409 */

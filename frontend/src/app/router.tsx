@@ -1,5 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router'
-import { GuestOnly, RequireAuth, RequireStaff } from '@/features/auth'
+import { GuestOnly, LoginRequired, RequireAuth, RequireStaff } from '@/features/auth'
 import { AboutPage } from '@/pages/about'
 import { CartPage } from '@/pages/cart'
 import { CheckoutPage } from '@/pages/checkout'
@@ -52,26 +52,14 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
-      {
-        path: 'cart',
-        element: (
-          <RequireAuth>
-            <CartPage />
-          </RequireAuth>
-        ),
-      },
-      {
-        path: 'checkout',
-        element: (
-          <RequireAuth>
-            <CheckoutPage />
-          </RequireAuth>
-        ),
-      },
+      // Корзина и оформление — и для гостя: почту и пароль он укажет при оформлении
+      { path: 'cart', element: <CartPage /> },
+      { path: 'checkout', element: <CheckoutPage /> },
+      // Заказы — в шапке у всех: гостю вместо перехода на вход — экран «Вы не авторизованы»
       {
         path: 'orders',
         element: (
-          <RequireAuth>
+          <RequireAuth guest={<LoginRequired text="Войдите, чтобы посмотреть свои заказы." />}>
             <OrdersPage />
           </RequireAuth>
         ),
@@ -79,7 +67,7 @@ export const router = createBrowserRouter([
       {
         path: 'orders/:purchaseId',
         element: (
-          <RequireAuth>
+          <RequireAuth guest={<LoginRequired text="Войдите, чтобы посмотреть свои заказы." />}>
             <OrderDetailsPage />
           </RequireAuth>
         ),

@@ -14,9 +14,11 @@ import {
   type FieldErrors,
   type PaymentMethodCode,
   type Purchase,
+  type User,
 } from '@/shared/api'
 import { formatPrice, pluralize, useRequest } from '@/shared/lib'
 import { Button, Field, FieldError, LinearProgress, OrderSummary, Switch } from '@/shared/ui'
+import { CustomerFields, type CustomerValue } from './CustomerFields'
 import { SlotPicker, type SlotValue } from './SlotPicker'
 
 const FORM_ID = 'checkout-form'
@@ -25,6 +27,8 @@ const slotErrorKey = (methodId: number) => `slot_${methodId}`
 
 interface CheckoutFormProps {
   preview: CheckoutPreview
+  /** null — гость: укажет почту и пароль, баланса и бонусов у него нет */
+  user: User | null
   /** Корзина или цены изменились — перечитать страницу оформления */
   onStale: () => void
   onPlaced: (purchase: Purchase) => void
@@ -34,7 +38,7 @@ interface CheckoutFormProps {
  * Способ получения выбирается у каждой позиции; сервер (quote) объединяет позиции
  * в отправки и считает доставку. Время — одно на способ, адрес — один на покупку.
  */
-export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) {
+export function CheckoutForm({ preview, user, onStale, onPlaced }: CheckoutFormProps) {
   const methodById = useMemo(
     () => new Map(preview.items.flatMap((item) => item.delivery_methods).map((method) => [method.id, method])),
     [preview],
@@ -76,6 +80,7 @@ export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) 
     preview.payment_methods.some((m) => m.code === 'on_delivery') ? 'on_delivery' : preview.payment_methods[0].code,
   )
   const [comment, setComment] = useState('')
+  const [customer, setCustomer] = useState<CustomerValue>({ email: '', password: '', phone: '' })
   const [errors, setErrors] = useState<FieldErrors>({})
   const [placing, setPlacing] = useState(false)
 
@@ -91,6 +96,8 @@ export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) 
       if (!slots[method.id]) result[slotErrorKey(method.id)] = ['Выберите время доставки.']
     }
     if (needsAddress && !address.trim()) result.address = ['Укажите адрес доставки.']
+    if (!user && !customer.email.trim()) result.email = ['Укажите почту.']
+    if (!user && !customer.password) result.password = ['Введите пароль.']
     if (payment === 'balance' && balanceShort > 0) {
       result.payment_method = [`На балансе не хватает ${formatPrice(balanceShort)}.`]
     }
@@ -112,6 +119,8 @@ export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) 
         address: needsAddress ? address.trim() : undefined,
         payment_method: payment,
         comment: comment.trim() || undefined,
+        phone: customer.phone.trim() || undefined,
+        ...(user ? {} : { email: customer.email.trim(), password: customer.password }),
         use_bonus: useBonus,
         // Сервер сверяет итог до бонусов
         expected_total: plan.data.total_amount,
@@ -221,6 +230,8 @@ export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) 
             )}
           </section>
 
+          <CustomerFields user={user} value={customer} onChange={setCustomer} errors={errors} />
+
           <section className="checkout-section">
             <h2 className="checkout-section__title">Оплата</h2>
             <div className="checkout-options" role="radiogroup" aria-label="Способ оплаты">
@@ -256,31 +267,33 @@ export function CheckoutForm({ preview, onStale, onPlaced }: CheckoutFormProps) 
           </section>
         </div>
 
-        {/* Баланс — общий на всю покупку, рядом с итогом */}
+        {/* Баланс — общий на всю покупку, рядом с итогом. У гостя баланса нет. */}
         <div className="checkout__side">
-          <section className="checkout-wallet" aria-label="Баланс">
-            <h2 className="checkout-wallet__title">Баланс</h2>
-            <dl className="checkout-wallet__amounts">
-              <div>
-                <dt>Всего</dt>
-                <dd>{formatPrice(Number(preview.balance) + Number(preview.bonus))}</dd>
-              </div>
-              <div>
-                <dt>Бонусы</dt>
-                <dd>{formatPrice(preview.bonus)}</dd>
-              </div>
-            </dl>
-            <Switch checked={useBonus} onChange={setUseBonus} disabled={!hasBonus}>
-              Оплатить бонусами
-            </Switch>
-            <span className="checkout-wallet__hint">
-              {!hasBonus
-                ? 'Бонусов пока нет.'
-                : useBonus && bonusUsed > 0
-                  ? `Спишется ${formatPrice(bonusUsed)} — остальное выбранным способом.`
-                  : `Бонусами можно оплатить до ${bonusSharePercent}% заказа.`}
-            </span>
-          </section>
+          {user && (
+            <section className="checkout-wallet" aria-label="Баланс">
+              <h2 className="checkout-wallet__title">Баланс</h2>
+              <dl className="checkout-wallet__amounts">
+                <div>
+                  <dt>Всего</dt>
+                  <dd>{formatPrice(Number(preview.balance) + Number(preview.bonus))}</dd>
+                </div>
+                <div>
+                  <dt>Бонусы</dt>
+                  <dd>{formatPrice(preview.bonus)}</dd>
+                </div>
+              </dl>
+              <Switch checked={useBonus} onChange={setUseBonus} disabled={!hasBonus}>
+                Оплатить бонусами
+              </Switch>
+              <span className="checkout-wallet__hint">
+                {!hasBonus
+                  ? 'Бонусов пока нет.'
+                  : useBonus && bonusUsed > 0
+                    ? `Спишется ${formatPrice(bonusUsed)} — остальное выбранным способом.`
+                    : `Бонусами можно оплатить до ${bonusSharePercent}% заказа.`}
+              </span>
+            </section>
+          )}
           <OrderSummary
             title="Ваш заказ"
             rows={[

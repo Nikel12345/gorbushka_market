@@ -12,7 +12,7 @@ class CartItemInline(admin.TabularInline):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-    list_display = ("user", "updated_at")
+    list_display = ("__str__", "updated_at")
     search_fields = ("user__email",)
     readonly_fields = ("created_at", "updated_at")
     inlines = [CartItemInline]

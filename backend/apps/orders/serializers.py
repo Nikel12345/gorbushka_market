@@ -5,6 +5,7 @@ from apps.core.fields import ImageUrlField
 from apps.delivery.serializers import DeliveryMethodBriefSerializer, DeliveryMethodSerializer
 from apps.shops.serializers import ShopBriefSerializer
 from apps.users.models import User
+from apps.users.serializers import CheckoutAccountSerializer, PhoneField
 
 from . import statuses
 from .checkout import DeliveryChoice, SlotChoice
@@ -14,7 +15,7 @@ from .models import Order, OrderItem, Purchase, Shipment
 class OrderBuyerSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name"]
+        fields = ["id", "email", "first_name", "last_name", "phone"]
         read_only_fields = fields
 
 
@@ -290,6 +291,8 @@ class CheckoutRequestSerializer(CheckoutQuoteRequestSerializer):
     address = serializers.CharField(max_length=500, required=False, allow_blank=True)
     payment_method = serializers.ChoiceField(choices=Purchase.PaymentMethod.choices)
     comment = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    # Телефон для связи по заказу (необязательно): указан — сохраняется в профиль
+    phone = PhoneField(required=False)
     # Итог, который видел покупатель: если не совпал с пересчитанным — 409
     expected_total = serializers.DecimalField(max_digits=12, decimal_places=2)
 
@@ -301,5 +304,19 @@ class CheckoutRequestSerializer(CheckoutQuoteRequestSerializer):
             "address": data.get("address", ""),
             "payment_method": data["payment_method"],
             "comment": data.get("comment", ""),
+            "phone": data.get("phone", ""),
             "expected_total": data["expected_total"],
+        }
+
+
+class GuestCheckoutRequestSerializer(CheckoutAccountSerializer, CheckoutRequestSerializer):
+    """Оформление гостем: то же плюс почта и пароль — вход в аккаунт с этой почтой или новый аккаунт."""
+
+    def service_kwargs(self) -> dict:
+        data = self.validated_data
+        return {
+            **super().service_kwargs(),
+            "account": data["user"],
+            "email": data["email"],
+            "password": data["password"],
         }

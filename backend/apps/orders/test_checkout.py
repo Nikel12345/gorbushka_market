@@ -1,12 +1,13 @@
 from decimal import Decimal
 
+from django.core.cache import cache
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from apps.cart.models import CartItem
+from apps.cart.models import Cart, CartItem
 from apps.cart.services import add_item
 from apps.catalog.models import Product
 from apps.delivery.models import DeliveryMethod
@@ -47,8 +48,9 @@ class CheckoutFixturesMixin:
         return product
 
     def to_cart(self, *products, quantity=1):
+        cart = Cart.objects.get_or_create(user=self.buyer)[0]
         for product in products:
-            add_item(self.buyer, product_id=product.id, quantity=quantity)
+            add_item(cart, product_id=product.id, quantity=quantity)
 
     def courier_slot(self):
         slot = get_slots(self.courier)[0]
@@ -64,11 +66,6 @@ class CheckoutFixturesMixin:
 
 class CheckoutPreviewTests(CheckoutFixturesMixin, APITestCase):
     url = reverse("me-checkout")
-
-    def test_requires_authentication(self):
-        self.client.logout()
-
-        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)
 
     def test_empty_cart(self):
         response = self.client.get(self.url)
@@ -418,10 +415,124 @@ class PlacePurchaseTests(CheckoutFixturesMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("payment_method", response.data)
 
-    def test_requires_authentication(self):
+    def test_phone_is_saved_to_profile(self):
+        self.to_cart(self.phone)
+
+        response = self.checkout(self.choose((self.phone, self.pickup)), "1000.00", phone="+7 999 123-45-67")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.buyer.refresh_from_db()
+        self.assertEqual(self.buyer.phone, "+79991234567")
+
+    def test_invalid_phone(self):
+        self.to_cart(self.phone)
+
+        response = self.checkout(self.choose((self.phone, self.pickup)), "1000.00", phone="12-34")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("phone", response.data)
+        self.assert_nothing_created()
+
+
+class GuestCheckoutTests(CheckoutFixturesMixin, APITestCase):
+    """Гость оформляет из корзины по сессии; почта и пароль — вход в свой аккаунт или новый аккаунт."""
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()  # у гостя лимит попыток пароля, как у входа
         self.client.logout()
 
-        self.assertEqual(self.checkout([], "0").status_code, status.HTTP_403_FORBIDDEN)
+    def guest_to_cart(self, *products):
+        for product in products:
+            self.client.post(reverse("me-cart-items"), {"product_id": product.id}, format="json")
+
+    def account_cart(self, user):
+        return list(CartItem.objects.filter(cart__user=user).values_list("product_id", flat=True))
+
+    def test_preview_and_quote_without_balance(self):
+        self.guest_to_cart(self.phone)
+
+        preview = self.client.get(reverse("me-checkout")).data
+        quote = self.client.post(
+            reverse("me-checkout-quote"), {"items": self.choose((self.phone, self.pickup)), "use_bonus": True}, format="json"
+        )
+
+        self.assertEqual([item["product"]["id"] for item in preview["items"]], [self.phone.id])
+        self.assertEqual([method["code"] for method in preview["payment_methods"]], ["on_delivery"])
+        self.assertEqual(preview["balance"], "0.00")
+        self.assertEqual(quote.status_code, status.HTTP_200_OK, quote.data)
+        self.assertEqual(quote.data["amount_to_pay"], "1000.00")
+
+    def test_new_account_is_created_and_logged_in(self):
+        self.guest_to_cart(self.phone, self.case)
+        self.case.quantity = 0
+        self.case.save()
+
+        response = self.checkout(
+            self.choose((self.phone, self.pickup)),
+            "1000.00",
+            email="New@Example.com",
+            password="Str0ng-pass!",
+            phone="8 (999) 123-45-67",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        buyer = User.objects.get(email="new@example.com")
+        self.assertEqual(buyer.phone, "+79991234567")
+        self.assertEqual(Purchase.objects.get().buyer, buyer)
+        # гость вошёл; что не вошло в покупку — уже в корзине аккаунта
+        self.assertEqual(self.client.get(reverse("auth-me")).data["email"], "new@example.com")
+        self.assertEqual(self.account_cart(buyer), [self.case.id])
+        self.assertFalse(Cart.objects.filter(user=None).exists())
+
+    def test_existing_account_with_correct_password(self):
+        CartItem.objects.create(cart=Cart.objects.create(user=self.buyer), product=self.charger, quantity=1)
+        self.guest_to_cart(self.phone)
+
+        response = self.checkout(
+            self.choose((self.phone, self.pickup)), "1000.00", email="buyer@example.com", password="x"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(Purchase.objects.get().buyer, self.buyer)
+        # оформлена корзина гостя, корзина аккаунта не тронута
+        self.assertEqual(self.account_cart(self.buyer), [self.charger.id])
+        self.assertEqual(self.client.get(reverse("auth-me")).data["email"], "buyer@example.com")
+
+    def test_wrong_password_for_existing_account(self):
+        self.guest_to_cart(self.phone)
+
+        response = self.checkout(
+            self.choose((self.phone, self.pickup)), "1000.00", email="buyer@example.com", password="wrong"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+        self.assertFalse(Purchase.objects.exists())
+        self.assertEqual(self.client.get(reverse("auth-me")).status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_account_is_not_created_when_purchase_fails(self):
+        self.guest_to_cart(self.phone)
+
+        response = self.checkout(
+            self.choose((self.phone, self.pickup)), "999.00", email="new@example.com", password="Str0ng-pass!"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertFalse(User.objects.filter(email="new@example.com").exists())
+        self.assertFalse(Purchase.objects.exists())
+
+    def test_email_and_strong_password_are_required(self):
+        self.guest_to_cart(self.phone)
+
+        missing = self.checkout(self.choose((self.phone, self.pickup)), "1000.00")
+        weak = self.checkout(self.choose((self.phone, self.pickup)), "1000.00", email="new@example.com", password="123")
+
+        self.assertEqual(missing.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertLessEqual({"email", "password"}, set(missing.data))
+        self.assertEqual(weak.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", weak.data)
+        self.assertFalse(User.objects.filter(email="new@example.com").exists())
 
 
 class PurchaseVisibilityTests(CheckoutFixturesMixin, APITestCase):

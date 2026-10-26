@@ -5,6 +5,8 @@ export interface User {
   email: string
   first_name: string
   last_name: string
+  /** "+79991234567"; пусто — не указан */
+  phone: string
   /** Сотрудник магазина: ему доступна админка (/seller) */
   is_staff: boolean
   date_joined: string

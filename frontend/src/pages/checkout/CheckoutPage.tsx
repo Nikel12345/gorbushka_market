@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '@/features/auth'
 import { useCart } from '@/features/cart'
 import { checkoutApi, getErrorMessage, type Purchase } from '@/shared/api'
 import { useRequest } from '@/shared/lib'
@@ -9,15 +10,16 @@ import './CheckoutPage.css'
 
 const loadPreview = (signal: AbortSignal) => checkoutApi.get({ signal })
 
-/** Оформление покупки из корзины: /checkout */
+/** Оформление покупки из корзины: /checkout. Доступно и гостю — он укажет почту и пароль. */
 export function CheckoutPage() {
+  const { user, status: authStatus, refresh: refreshAuth } = useAuth()
   const { refresh: refreshCart } = useCart()
   const preview = useRequest(loadPreview)
   const [purchase, setPurchase] = useState<Purchase | null>(null)
 
   if (purchase) return <CheckoutSuccess purchase={purchase} />
 
-  if (!preview.data) {
+  if (!preview.data || authStatus === 'loading') {
     return preview.status === 'error' ? (
       <ErrorState message={getErrorMessage(preview.error)} onRetry={preview.reload} />
     ) : (
@@ -42,10 +44,13 @@ export function CheckoutPage() {
   return (
     <CheckoutForm
       preview={preview.data}
+      user={user}
       onStale={preview.reload}
       onPlaced={(placed) => {
         setPurchase(placed)
-        refreshCart()
+        // Гость при оформлении вошёл в аккаунт — корзина перечитается сама, когда узнаем пользователя
+        if (user) refreshCart()
+        else void refreshAuth()
         window.scrollTo(0, 0)
       }}
     />

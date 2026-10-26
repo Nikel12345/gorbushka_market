@@ -1,6 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { useLocation, useNavigationType, useSearchParams } from 'react-router'
-import { ProductTile } from '@/entities/product'
+import { ProductRating, ProductTile } from '@/entities/product'
 import { CartControl } from '@/features/cart'
 import { getProductFilterErrors, ProductFiltersPanel, useProductFilters } from '@/features/product-filters'
 import { catalogApi, getErrorMessage, PRODUCT_SORTS, type ProductSort } from '@/shared/api'
@@ -112,6 +112,7 @@ export function ProductCatalog({ title, emptyText, withPromo = false }: ProductC
                   product={product}
                   to={`/products/${product.id}`}
                   badge={!product.in_stock && 'Нет в наличии'}
+                  meta={<ProductRating value={product.rating} count={product.reviews_count} />}
                   action={<CartControl productId={product.id} variant="compact" canBuy={product.in_stock} />}
                 />
               </li>

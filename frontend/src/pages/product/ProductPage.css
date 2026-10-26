@@ -39,11 +39,11 @@
   color: var(--color-text-secondary);
 }
 
-/* Фото | информация и покупка */
+/* Фото | информация и покупка. Фото — уже, без пустых полей вокруг: место отдано информации и покупке */
 .product-page {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 40px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 4fr);
+  gap: 28px;
   align-items: start;
   padding: 28px;
   border-radius: var(--radius-xl);
@@ -55,7 +55,7 @@
 
 .product-page__gallery {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -174,11 +174,12 @@
   background: var(--color-input-border);
 }
 
-/* Цена | избранное | в корзину */
+/* Цена | избранное | в корзину. Контейнер: по его ширине решаем, встаёт ли счётчик в строку (ниже) */
 .product-page__buy {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  container: product-buy / inline-size;
 }
 
 .product-page__price-box {
@@ -239,15 +240,104 @@
   width: 200px;
 }
 
-/* Рядом с ценой подпись «В корзине» лишняя — счётчик «− 2 шт. +» понятен сам */
-.product-page__cart .cart-control__label {
-  display: none;
-}
-
 .product-page__cart .cart-control__add,
 .product-page__cart .cart-control__stepper {
   height: 56px;
   border-radius: var(--radius-lg);
+}
+
+.product-page__cart .cart-control__go-link {
+  border-radius: var(--radius-lg);
+}
+
+/*
+ * Хватает места (ПК, планшет): товар в корзине — кнопка распадается на счётчик и «Перейти в корзину» в строку,
+ * блок расширяется за счёт цены. Иначе (телефон) — «Перейти в корзину» под счётчиком, как в CartControl.
+ */
+@container product-buy (min-width: 540px) {
+  .product-page__cart:has(.cart-control__go--open) {
+    width: 320px;
+  }
+
+  .product-page__cart .cart-control--full {
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 0;
+  }
+
+  .product-page__cart .cart-control__add,
+  .product-page__cart .cart-control__hint,
+  .product-page__cart .cart-control__error {
+    flex: 1 1 100%;
+  }
+
+  .product-page__cart .cart-control__stepper {
+    flex: 0 0 auto;
+    width: 148px;
+    margin-right: 8px;
+    overflow: hidden;
+  }
+
+  .product-page__cart .cart-control__step {
+    width: 44px;
+  }
+
+  /* Свёрнутая — нулевой ширины, раскрытая — всё место справа от счётчика, высотой со счётчик */
+  .product-page__cart .cart-control__go {
+    display: flex;
+    flex: 0 0 0;
+    min-width: 0;
+    margin-top: 0;
+    overflow: hidden;
+    opacity: 1;
+  }
+
+  .product-page__cart .cart-control__go--open {
+    flex: 1 1 0;
+  }
+
+  .product-page__cart .cart-control__go-inner {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .product-page__cart .cart-control__go-link {
+    flex: 1;
+    min-width: 0;
+    height: auto;
+  }
+}
+
+/* Блок расширяется плавно: счётчик выезжает слева, красная часть сужается, надпись на ней проявляется */
+@media (prefers-reduced-motion: no-preference) {
+  .product-page__cart {
+    transition: width 0.25s ease;
+  }
+
+  @container product-buy (min-width: 540px) {
+    .product-page__cart .cart-control--full.cart-control--animated > .cart-control__stepper {
+      animation: product-page-stepper-in 0.25s ease;
+    }
+
+    .product-page__cart .cart-control--animated .cart-control__go--open .cart-control__go-link {
+      animation: product-page-text-in 0.3s ease-out;
+    }
+  }
+}
+
+@keyframes product-page-stepper-in {
+  from {
+    width: 0;
+    margin-right: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes product-page-text-in {
+  from {
+    color: transparent;
+  }
 }
 
 /* Наличие и способы получения */
@@ -388,11 +478,13 @@ a.product-page__variant:hover {
     overflow-x: auto;
   }
 
+  /* Телефон: цена и избранное строкой, кнопка корзины — во всю ширину под ними */
   .product-page__buy {
     flex-wrap: wrap;
   }
 
-  .product-page__cart {
+  .product-page__cart,
+  .product-page__cart:has(.cart-control__go--open) {
     width: 100%;
   }
 
