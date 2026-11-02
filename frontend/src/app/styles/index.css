@@ -1,39 +1,93 @@
 /*
- * Дизайн-токены. Внешний вид UI-кита (shared/ui/ui.css) и админки магазина
- * держится на этих переменных — смена темы начинается отсюда.
+ * Дизайн-токены. Внешний вид UI-кита (shared/ui/ui.css), витрины и админки магазина
+ * держится на этих переменных. Здесь — вариант «Чистый» (по умолчанию);
+ * остальные варианты витрины переопределяют токены в designs.css.
  */
 :root {
-  /* Фирменный красный: логотип, основные кнопки, активные пункты, счётчики */
-  --color-brand: #e31e24;
-  --color-brand-dark: #c8161c;
-  --color-brand-light: #fdeceb;
-  /* Действия и ссылки — тоже красные, как у крупных магазинов техники */
+  color-scheme: light;
+
+  /* Фирменный малиновый — тот же, что фон логотипа */
+  --color-brand: #bc0032;
+  --color-brand-dark: #9a0029;
+  --color-brand-light: #fbe9ee;
+  /* Текст и иконки на заливке фирменным цветом */
+  --color-on-brand: #ffffff;
+  /* Действия и ссылки — фирменного цвета */
   --color-primary: var(--color-brand);
   --color-primary-dark: var(--color-brand-dark);
   --color-primary-light: var(--color-brand-light);
   --color-danger: #d32f2f;
   --color-danger-dark: #b71c1c;
   --color-success: #2e7d32;
-  --color-text: #1f1f1f;
-  --color-text-secondary: #7a7a7a;
-  --color-divider: #ececec;
-  --color-input-border: #d9d9d9;
+  --color-success-light: #e8f5e9;
+  --color-text: #1d1d1f;
+  --color-text-secondary: #74747a;
+  /* Подсказки в пустых полях */
+  --color-text-muted: #9a9aa0;
+  --color-divider: #ebebee;
+  --color-input-bg: #ffffff;
+  --color-input-border: #d9d9de;
+  --color-input-border-hover: #c4c4ca;
   --color-input-focus: var(--color-brand);
-  --color-focus-ring: rgba(227, 30, 36, 0.18);
+  --color-focus-ring: color-mix(in srgb, var(--color-brand) 20%, transparent);
   --color-hover: rgba(0, 0, 0, 0.04);
-  --color-bg: #f5f5f6;
+  --color-bg: #f4f4f6;
   --color-surface: #ffffff;
-  --color-surface-muted: #f3f3f4;
+  --color-surface-muted: #f2f2f4;
+  /* Нажатая/наведённая серая заливка (кнопка по умолчанию, поиск) */
+  --color-surface-pressed: #e8e8eb;
+  /* Едва заметная заливка: шапка таблицы, строка под курсором */
+  --color-surface-subtle: #fafafb;
+  /* Подложка под фото товара: фото снимают на белом */
+  --color-image-bg: #ffffff;
+  --color-icon: #4a4a4f;
+  --color-disabled: #c4c4ca;
+  --color-rating: #f5a623;
+  /* Тёмные плашки поверх фото и всплывающие подсказки */
+  --color-overlay: rgba(29, 29, 31, 0.8);
+  --color-backdrop: rgba(20, 20, 20, 0.5);
+  --color-spinner-track: #e0e0e4;
+
+  /* Статусы (Chip) */
+  --chip-neutral-bg: var(--color-surface-muted);
+  --chip-neutral-fg: #5f5f66;
+  --chip-info-bg: #e8f1fa;
+  --chip-info-fg: #1565c0;
+  --chip-success-bg: #e6f4ea;
+  --chip-success-fg: #2b7a3d;
+  --chip-warning-bg: #fff4e0;
+  --chip-warning-fg: #b25e00;
+
+  /* Шапка витрины */
+  --header-bg: var(--color-surface);
+  --header-fg: var(--color-text);
+  --header-icon: var(--color-icon);
+  /* Наведённый и текущий раздел */
+  --header-accent: var(--color-brand);
+  --header-shadow: 0 1px 0 var(--color-divider), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --header-badge-bg: var(--color-brand);
+  --header-badge-fg: var(--color-on-brand);
+  --search-bg: var(--color-surface-muted);
+  --search-bg-hover: var(--color-surface-pressed);
+  --search-bg-focus: var(--color-surface);
+  --search-border-focus: var(--color-brand);
+  --search-button-bg: var(--color-brand);
+  --search-button-bg-hover: var(--color-brand-dark);
+  --search-button-icon: var(--color-on-brand);
 
   --radius-sm: 6px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-2: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-1: 0 1px 2px rgba(16, 16, 24, 0.04), 0 0 0 1px rgba(16, 16, 24, 0.03);
+  --shadow-2: 0 10px 28px rgba(16, 16, 24, 0.1);
   --shadow-dialog: 0 12px 48px rgba(0, 0, 0, 0.2);
+  /* Тень кнопки «в корзину» поверх фото */
+  --shadow-brand: 0 2px 8px color-mix(in srgb, var(--color-brand) 30%, transparent);
 
-  --font-family: Inter, 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+  --font-family: 'Golos Text', 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+  /* Заголовки страниц и блоков (h1, h2) */
+  --font-heading: var(--font-family);
   --app-bar-height: 60px;
   --sidebar-width: 232px;
   /* Витрина: шапка и колонка контента */
@@ -63,6 +117,11 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+}
+
+h1,
+h2 {
+  font-family: var(--font-heading);
 }
 
 /* Вход и регистрация: карточка по центру */
@@ -112,6 +171,8 @@ body {
   padding: 0 14px;
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius);
+  background: var(--color-input-bg);
+  color: inherit;
   font: inherit;
   font-size: 15px;
   font-weight: 400;
@@ -131,7 +192,7 @@ body {
   border: 0;
   border-radius: var(--radius);
   background: var(--color-brand);
-  color: #fff;
+  color: var(--color-on-brand);
   font: inherit;
   font-size: 15px;
   font-weight: 600;

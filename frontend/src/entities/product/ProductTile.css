@@ -83,7 +83,7 @@
   bottom: 4px;
   padding: 0 8px;
   border-radius: var(--radius-sm);
-  background: rgba(31, 31, 31, 0.78);
+  background: var(--color-overlay);
   color: #fff;
   font-size: 12px;
   font-weight: 500;
@@ -133,7 +133,7 @@
   flex: none;
   width: 14px;
   height: 14px;
-  fill: #f5a623;
+  fill: var(--color-rating);
 }
 
 .product-rating__star--empty {

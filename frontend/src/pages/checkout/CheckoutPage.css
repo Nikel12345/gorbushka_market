@@ -329,7 +329,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #e8f5e9;
+  background: var(--color-success-light);
   color: var(--color-success);
   font-size: 28px;
   font-weight: 700;

@@ -126,7 +126,7 @@
   bottom: 2px;
   padding: 0 5px;
   border-radius: var(--radius-sm);
-  background: rgba(31, 31, 31, 0.75);
+  background: var(--color-overlay);
   color: #fff;
   font-size: 11px;
   line-height: 16px;

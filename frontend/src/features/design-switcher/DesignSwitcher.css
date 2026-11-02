@@ -1,0 +1,100 @@
+/* Полоса под шапкой (не липкая): панель начинается там же, где поле поиска */
+.design-switcher__inner {
+  max-width: var(--market-width);
+  margin: 0 auto;
+  padding: 12px 24px 0;
+}
+
+.design-switcher__panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  /* Колонка логотипа + зазор шапки (AppLayout.css) */
+  margin-left: calc(var(--market-aside) + 24px);
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.design-switcher__label {
+  padding: 0 8px 0 10px;
+  color: var(--color-text-secondary);
+}
+
+.design-switcher__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px 0 7px;
+  border-radius: 999px;
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.design-switcher__option:hover {
+  background: var(--color-surface-muted);
+}
+
+.design-switcher__option--active,
+.design-switcher__option--active:hover {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+
+.design-switcher__option:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* Кружок: фон и акцент варианта по диагонали */
+.design-switcher__swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--swatch-bg) 50%, var(--swatch-accent) 50%);
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.35);
+}
+
+/* Фильтры ушли над лентой — логотип шириной по картинке (52px высоты, 1280×277, см. Logo.css) */
+@media (max-width: 900px) {
+  .design-switcher__panel {
+    margin-left: calc(52px * 1280 / 277 + 24px);
+  }
+}
+
+/* Поиск во всю ширину под логотипом — панель тоже от края */
+@media (max-width: 720px) {
+  .design-switcher__inner {
+    padding: 8px 12px 0;
+  }
+
+  /* Вариантов больше, чем влезает в узкий телефон, — панель листается вбок */
+  .design-switcher__panel {
+    max-width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .design-switcher__option {
+    padding: 0 10px 0 6px;
+  }
+
+  .design-switcher__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

@@ -101,7 +101,7 @@
   padding: 1px 6px;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.8);
-  color: var(--color-text-secondary);
+  color: #5f5f66;
   font-size: 11px;
 }
 

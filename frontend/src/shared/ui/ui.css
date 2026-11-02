@@ -35,7 +35,7 @@
 
 .ui-button--primary {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-brand);
 }
 
 .ui-button--primary:hover:not(:disabled) {
@@ -48,7 +48,7 @@
 }
 
 .ui-button--default:hover:not(:disabled) {
-  background: #e8e8ea;
+  background: var(--color-surface-pressed);
 }
 
 .ui-button--text {
@@ -63,7 +63,7 @@
 
 .ui-button--danger {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-brand);
 }
 
 .ui-button--danger:hover:not(:disabled) {
@@ -107,7 +107,7 @@
   padding: 8px 12px;
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--color-input-bg);
   color: inherit;
   font: inherit;
   font-size: 14px;
@@ -118,7 +118,7 @@
 }
 
 .ui-input:hover:not(:focus) {
-  border-color: #c4c4c4;
+  border-color: var(--color-input-border-hover);
 }
 
 .ui-input:focus {
@@ -239,7 +239,7 @@ textarea.ui-input {
   height: 40px;
   padding: 0 12px;
   border-bottom: 1px solid var(--color-divider);
-  background: #fafafb;
+  background: var(--color-surface-subtle);
   font-size: 12px;
   font-weight: 500;
   text-align: left;
@@ -279,7 +279,7 @@ textarea.ui-input {
 
 .ui-table__row--clickable:hover,
 .ui-table__row--active {
-  background: #fafafb;
+  background: var(--color-surface-subtle);
 }
 
 /* --- Chip --- */
@@ -295,23 +295,23 @@ textarea.ui-input {
 }
 
 .ui-chip--neutral {
-  background: var(--color-surface-muted);
-  color: #5f5f5f;
+  background: var(--chip-neutral-bg);
+  color: var(--chip-neutral-fg);
 }
 
 .ui-chip--info {
-  background: #e8f1fa;
-  color: #1565c0;
+  background: var(--chip-info-bg);
+  color: var(--chip-info-fg);
 }
 
 .ui-chip--success {
-  background: #e6f4ea;
-  color: #2b7a3d;
+  background: var(--chip-success-bg);
+  color: var(--chip-success-fg);
 }
 
 .ui-chip--warning {
-  background: #fff4e0;
-  color: #b25e00;
+  background: var(--chip-warning-bg);
+  color: var(--chip-warning-fg);
 }
 
 .ui-chip--danger {
@@ -333,13 +333,13 @@ textarea.ui-input {
 .ui-spinner {
   width: 22px;
   height: 22px;
-  border: 3px solid #e0e0e0;
+  border: 3px solid var(--color-spinner-track);
   border-top-color: var(--color-brand);
   border-radius: 50%;
   animation: ui-spin 0.8s linear infinite;
 }
 
-/* Полоса загрузки — красная, вверху блока */
+/* Полоса загрузки — фирменного цвета, вверху блока */
 .ui-progress {
   position: absolute;
   top: 0;
@@ -470,6 +470,7 @@ textarea.ui-input {
   overflow: hidden;
   border: 0;
   border-radius: var(--radius-xl);
+  background: var(--color-surface);
   box-shadow: var(--shadow-dialog);
   color: inherit;
 }
@@ -483,7 +484,7 @@ textarea.ui-input {
 }
 
 .ui-dialog::backdrop {
-  background: rgba(20, 20, 20, 0.5);
+  background: var(--color-backdrop);
 }
 
 .ui-dialog__inner {

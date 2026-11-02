@@ -1,0 +1,563 @@
+/*
+ * Варианты дизайна витрины. Вариант задаёт атрибут data-design на <html>
+ * (features/design-switcher). «Чистый» — это базовые токены из index.css; здесь только отличия.
+ * «Рынок» и «Тёмный» меняют только стиль (цвета, шрифты, скругления, тени); «Аврора» средствами CSS
+ * меняет ещё и композицию. Разметка страниц у всех вариантов общая.
+ */
+
+/* ===================== «Рынок»: вывеска Горбушки ===================== */
+
+:root[data-design='market'] {
+  /* Жёлтый ценника — второй фирменный цвет */
+  --color-accent: #ffd400;
+  --color-accent-hover: #ffe04d;
+  --color-on-accent: #1a1a1a;
+
+  /* Тёплые нейтральные вместо холодно-серых */
+  --color-text: #1a1a1a;
+  --color-text-secondary: #6f6a62;
+  --color-text-muted: #9a938a;
+  --color-divider: #e6e1d8;
+  --color-input-border: #d6cfc4;
+  --color-input-border-hover: #bfb6a8;
+  --color-bg: #f1eee9;
+  --color-surface-muted: #f4f1ec;
+  --color-surface-pressed: #e9e4dc;
+  --color-surface-subtle: #faf8f5;
+  --color-icon: #3a3631;
+
+  /* Шапка — малиновая, как фон логотипа: картинка сливается с ней */
+  --header-bg: var(--color-brand);
+  --header-fg: #ffffff;
+  --header-icon: #ffffff;
+  --header-accent: var(--color-accent);
+  --header-shadow: 0 3px 0 var(--color-accent);
+  --header-badge-bg: var(--color-accent);
+  --header-badge-fg: var(--color-on-accent);
+  --search-bg: #ffffff;
+  --search-bg-hover: #ffffff;
+  --search-bg-focus: #ffffff;
+  --search-border-focus: var(--color-accent);
+  --search-button-bg: var(--color-accent);
+  --search-button-bg-hover: var(--color-accent-hover);
+  --search-button-icon: var(--color-on-accent);
+
+  /* Острее углы, вместо теней — тонкая рамка; под курсором — фирменная рамка */
+  --radius-sm: 3px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --shadow-1: 0 0 0 1px var(--color-divider);
+  --shadow-2: 0 0 0 2px var(--color-brand);
+
+  --font-family: 'Fira Sans', 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+  /* Узкий жирный — как буквы логотипа */
+  --font-heading: 'Fira Sans Extra Condensed', 'Fira Sans', 'Arial Narrow', sans-serif;
+}
+
+:root[data-design='market'] :is(h1, h2) {
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+:root[data-design='market'] .ui-button,
+:root[data-design='market'] .cart-control__add,
+:root[data-design='market'] .cart-control__go-link {
+  font-weight: 600;
+}
+
+/* Цена — жёлтый ценник */
+:root[data-design='market'] .product-tile__price {
+  align-self: flex-start;
+  padding: 1px 8px 2px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+:root[data-design='market'] .product-page__price-box {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+:root[data-design='market'] .product-page__price,
+:root[data-design='market'] .ui-summary__total {
+  font-family: var(--font-heading);
+  letter-spacing: 0;
+}
+
+:root[data-design='market'] .product-page__price {
+  font-size: 34px;
+}
+
+/* Подвал — тёмная полоса с жёлтой кромкой, в пару к шапке */
+:root[data-design='market'] .market-footer {
+  border-top: 3px solid var(--color-accent);
+  background: #1a1a1a;
+}
+
+:root[data-design='market'] .market-footer__inner {
+  color: #b9b2a7;
+}
+
+:root[data-design='market'] .market-footer__link {
+  color: #ffffff;
+}
+
+:root[data-design='market'] .market-footer__link:hover {
+  color: var(--color-accent);
+}
+
+@media (max-width: 600px) {
+  :root[data-design='market'] .product-tile__price {
+    font-size: 19px;
+  }
+
+  :root[data-design='market'] .product-page__price {
+    font-size: 30px;
+  }
+}
+
+/* ===================== «Тёмный» ===================== */
+
+:root[data-design='dark'] {
+  color-scheme: dark;
+
+  /* Малиновый логотипа на тёмном фоне не читается — акцент светлее */
+  --color-brand: #e0245a;
+  --color-brand-dark: #c41b4c;
+  --color-brand-light: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  --color-danger: #ff5a5f;
+  --color-danger-dark: #e64a50;
+  --color-success: #5cc06a;
+  --color-success-light: rgba(92, 192, 106, 0.16);
+  --color-text: #f1f1f3;
+  --color-text-secondary: #9d9da6;
+  --color-text-muted: #77777f;
+  --color-divider: #2c2c32;
+  --color-input-bg: #1f1f23;
+  --color-input-border: #3a3a41;
+  --color-input-border-hover: #4c4c54;
+  --color-hover: rgba(255, 255, 255, 0.06);
+  --color-bg: #111113;
+  --color-surface: #1b1b1f;
+  --color-surface-muted: #26262b;
+  --color-surface-pressed: #313137;
+  --color-surface-subtle: #212126;
+  /* Фото товаров сняты на белом — подложка светлая, но не слепящая */
+  --color-image-bg: #f2f2f4;
+  --color-icon: #c9c9d0;
+  --color-disabled: #55555c;
+  --color-overlay: rgba(0, 0, 0, 0.75);
+  --color-backdrop: rgba(0, 0, 0, 0.65);
+  --color-spinner-track: #33333a;
+
+  --chip-neutral-bg: #2a2a30;
+  --chip-neutral-fg: #c9c9d0;
+  --chip-info-bg: rgba(77, 148, 255, 0.16);
+  --chip-info-fg: #8ab8ff;
+  --chip-success-bg: rgba(92, 192, 106, 0.16);
+  --chip-success-fg: #8fd89a;
+  --chip-warning-bg: rgba(245, 166, 35, 0.16);
+  --chip-warning-fg: #f5b94a;
+
+  --header-bg: #18181b;
+  --header-shadow: 0 1px 0 var(--color-divider);
+  --search-bg-focus: var(--color-input-bg);
+
+  /* Тени на тёмном не видны — карточки отделяет тонкая рамка */
+  --shadow-1: 0 0 0 1px var(--color-divider);
+  --shadow-2: 0 0 0 1px #3d3d45, 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-dialog: 0 0 0 1px var(--color-divider), 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-brand: 0 2px 10px rgba(0, 0, 0, 0.45);
+
+  --font-family: Manrope, 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+}
+
+/* Стрелка сортировки — картинка, токен в неё не попадёт */
+:root[data-design='dark'] .catalog__sort .ui-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23f1f1f3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ===================== «Аврора»: стекло, градиенты, крупные скругления ===================== */
+/*
+ * Единственный вариант, который меняет и композицию (только средствами CSS): шапка и подвал —
+ * плавающие стеклянные «капсулы», карточка товара распадается на два блока, в плитке цена
+ * уходит вниз под название, кнопки — градиентные «пилюли».
+ */
+
+:root[data-design='aurora'] {
+  --color-text: #16131c;
+  --color-text-secondary: #6e6878;
+  --color-text-muted: #a49eae;
+  --color-divider: #ece8f2;
+  --color-input-bg: #fbfafd;
+  --color-input-border: #e2dcea;
+  --color-input-border-hover: #cdc5d9;
+  --color-bg: #f7f5fa;
+  --color-surface-muted: #f4f1f8;
+  --color-surface-pressed: #ebe6f2;
+  --color-surface-subtle: #faf9fc;
+  --color-hover: rgba(22, 19, 28, 0.05);
+
+  /* Градиент кнопок: от малинового логотипа к коралловому */
+  --gradient-brand: linear-gradient(135deg, #bc0032 0%, #ff3d6e 100%);
+  --gradient-brand-hover: linear-gradient(135deg, #a3002b 0%, #f02a5d 100%);
+  --gradient-brand-soft: linear-gradient(135deg, rgba(188, 0, 50, 0.07) 0%, rgba(255, 61, 110, 0.13) 100%);
+
+  /* Стекло: шапка, подвал, фильтры, блок покупки */
+  --glass-bg: rgba(255, 255, 255, 0.66);
+  --glass-blur: blur(20px) saturate(160%);
+  --glass-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75), 0 10px 30px rgba(38, 20, 60, 0.07);
+
+  --header-bg: rgba(255, 255, 255, 0.72);
+  --header-shadow: 0 0 0 1px rgba(22, 19, 28, 0.06), 0 12px 32px rgba(38, 20, 60, 0.08);
+  --search-bg: rgba(22, 19, 28, 0.05);
+  --search-bg-hover: rgba(22, 19, 28, 0.08);
+  --search-bg-focus: #ffffff;
+  --search-button-bg: var(--gradient-brand);
+  --search-button-bg-hover: var(--gradient-brand-hover);
+
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --shadow-1: 0 1px 2px rgba(22, 19, 28, 0.04), 0 8px 24px rgba(38, 20, 60, 0.05);
+  --shadow-2: 0 2px 6px rgba(22, 19, 28, 0.05), 0 22px 44px rgba(188, 0, 50, 0.13);
+  --shadow-dialog: 0 24px 64px rgba(38, 20, 60, 0.25);
+  --shadow-brand: 0 6px 18px rgba(188, 0, 50, 0.32);
+
+  --market-bar-height: 68px;
+  --font-family: Onest, 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+  /* Широкий геометричный — для заголовков и цен */
+  --font-heading: Unbounded, Onest, 'Segoe UI', sans-serif;
+
+  /* Мягкое «северное сияние» за страницей */
+  background:
+    radial-gradient(60vw 45vw at 0% 0%, rgba(255, 61, 110, 0.16), transparent 70%),
+    radial-gradient(50vw 40vw at 100% 5%, rgba(124, 58, 237, 0.12), transparent 70%),
+    radial-gradient(60vw 45vw at 70% 105%, rgba(255, 176, 32, 0.12), transparent 70%),
+    var(--color-bg);
+  background-attachment: fixed;
+}
+
+:root[data-design='aurora'] .market {
+  /* Шапка отстоит от верха на 12px — липкие колонки ниже неё */
+  --sticky-header-height: calc(var(--market-bar-height) + 12px);
+  background: transparent;
+}
+
+/* --- Заголовки: широкий шрифт, поэтому чуть мельче --- */
+
+:root[data-design='aurora'] :is(h1, h2) {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+:root[data-design='aurora'] :is(.catalog__title, .cart-page__title, .checkout__title, .orders-page__title),
+:root[data-design='aurora'] .product-page__title {
+  font-size: 26px;
+}
+
+:root[data-design='aurora'] :is(.product-shelf__title, .product-reviews__title, .cart-recommendations__title) {
+  font-size: 20px;
+}
+
+:root[data-design='aurora'] :is(.checkout-section__title, .order-section__title) {
+  font-size: 18px;
+}
+
+:root[data-design='aurora'] .product-filters__title {
+  font-size: 16px;
+}
+
+/* --- Шапка: плавающая стеклянная капсула по ширине контента --- */
+
+:root[data-design='aurora'] .market-bar {
+  top: 12px;
+  width: calc(100% - 48px);
+  max-width: calc(var(--market-width) - 48px);
+  margin: 12px auto 0;
+  border-radius: 24px;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+:root[data-design='aurora'] .market-bar__inner {
+  padding: 0 16px;
+}
+
+/* Поиск по-прежнему над лентой: колонка логотипа короче на внутренний отступ капсулы */
+:root[data-design='aurora'] .market-bar__inner > .app-logo {
+  --logo-height: 44px;
+  flex-basis: calc(var(--market-aside) - 16px);
+}
+
+:root[data-design='aurora'] .market-bar .app-logo__img {
+  border-radius: 12px;
+}
+
+:root[data-design='aurora'] .market-nav__badge {
+  border-color: #ffffff;
+  background: var(--gradient-brand);
+}
+
+:root[data-design='aurora'] .market-search__input {
+  padding-left: 20px;
+  border-radius: 999px;
+}
+
+:root[data-design='aurora'] .market-search__button {
+  width: 52px;
+  border-radius: 999px;
+}
+
+:root[data-design='aurora'] .market-nav__link {
+  border-radius: 16px;
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+}
+
+:root[data-design='aurora'] .market-nav__link:hover {
+  background: rgba(22, 19, 28, 0.05);
+}
+
+/* --- Подвал: такая же капсула --- */
+
+:root[data-design='aurora'] .market-footer {
+  width: calc(100% - 48px);
+  max-width: calc(var(--market-width) - 48px);
+  margin: 0 auto 16px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+/* --- Панель вариантов --- */
+
+:root[data-design='aurora'] .design-switcher__panel {
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+:root[data-design='aurora'] .design-switcher__option--active {
+  background: var(--gradient-brand);
+  color: #ffffff;
+}
+
+/* --- Кнопки: градиентные пилюли --- */
+
+:root[data-design='aurora'] .ui-button {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+:root[data-design='aurora'] :is(.ui-button--primary, .cart-control__go-link, .auth-form button[type='submit']),
+:root[data-design='aurora'] .cart-control__add:not(.cart-control__add--unavailable),
+:root[data-design='aurora'] .cart-control--compact .cart-control__stepper,
+:root[data-design='aurora'] .product-filters__count {
+  background: var(--gradient-brand);
+  box-shadow: var(--shadow-brand);
+}
+
+:root[data-design='aurora'] :is(.ui-button--primary, .cart-control__add):hover:not(:disabled),
+:root[data-design='aurora'] :is(.cart-control__go-link, .auth-form button[type='submit']):hover {
+  background: var(--gradient-brand-hover);
+}
+
+:root[data-design='aurora'] .auth-form button[type='submit'],
+:root[data-design='aurora'] :is(.cart-control__add, .cart-control__stepper, .cart-control__step, .cart-control__go-link),
+:root[data-design='aurora'] .product-page__variant {
+  border-radius: 999px;
+}
+
+/* --- Плитка товара: название сверху, цена внизу; под курсором плитка приподнимается --- */
+
+:root[data-design='aurora'] :is(.product-tile, .product-tile-wrap) {
+  --tile-pad: 10px;
+}
+
+:root[data-design='aurora'] .product-tile {
+  border-radius: 24px;
+}
+
+:root[data-design='aurora'] .product-tile .product-image {
+  border-radius: 18px;
+}
+
+:root[data-design='aurora'] .product-tile__body {
+  flex: 1;
+  gap: 6px;
+  padding: 12px 6px 6px;
+}
+
+:root[data-design='aurora'] .product-tile__title {
+  order: 1;
+  font-weight: 500;
+}
+
+:root[data-design='aurora'] .product-tile__meta {
+  order: 2;
+  margin-top: 0;
+}
+
+:root[data-design='aurora'] .product-tile__price {
+  order: 3;
+  margin-top: auto;
+  padding-top: 8px;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-design='aurora'] :is(.product-tile, .product-tile__action) {
+    transition:
+      box-shadow 0.25s ease,
+      transform 0.25s ease;
+  }
+
+  /* Кнопка корзины лежит поверх плитки отдельно — поднимаем её вместе с плиткой */
+  :root[data-design='aurora'] .product-tile--link:hover,
+  :root[data-design='aurora'] .product-tile-wrap:hover > :is(.product-tile, .product-tile__action) {
+    transform: translateY(-4px);
+  }
+}
+
+:root[data-design='aurora'] .product-tile-wrap:hover > .product-tile {
+  box-shadow: var(--shadow-2);
+}
+
+/* --- Фильтры и прочие стеклянные блоки --- */
+
+:root[data-design='aurora'] .product-filters {
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+:root[data-design='aurora'] .catalog__sort .ui-input {
+  border-radius: 999px;
+}
+
+:root[data-design='aurora'] .ui-dialog::backdrop {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* --- Страница товара: два отдельных блока вместо одной карточки --- */
+
+:root[data-design='aurora'] .product-page {
+  gap: 16px;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:root[data-design='aurora'] .product-page__gallery {
+  padding: 24px;
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+:root[data-design='aurora'] .product-page__info {
+  align-self: stretch;
+  padding: 28px;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+:root[data-design='aurora'] .product-page__price-box {
+  padding: 0 24px;
+  border-radius: 999px;
+  background: var(--gradient-brand-soft);
+}
+
+:root[data-design='aurora'] .product-page__price {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+:root[data-design='aurora'] .product-page__favorite {
+  border-radius: 50%;
+}
+
+:root[data-design='aurora'] .product-page__tile {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px var(--color-divider);
+}
+
+/* Фильтры ушли над лентой — панель вариантов под поиском: логотип 44px высоты + отступы капсулы */
+@media (max-width: 900px) {
+  :root[data-design='aurora'] .design-switcher__panel {
+    margin-left: calc(44px * 1280 / 277 + 16px + 24px);
+  }
+}
+
+@media (max-width: 720px) {
+  :root[data-design='aurora'] .market {
+    --sticky-header-height: calc(var(--market-bar-height) + 8px);
+  }
+
+  :root[data-design='aurora'] .market-bar {
+    top: 8px;
+    width: calc(100% - 16px);
+    margin-top: 8px;
+    border-radius: 20px;
+  }
+
+  :root[data-design='aurora'] .market-bar__inner {
+    padding: 4px 12px 10px;
+  }
+
+  :root[data-design='aurora'] .market-bar__inner > .app-logo {
+    --logo-height: 28px;
+  }
+
+  :root[data-design='aurora'] .design-switcher__panel {
+    margin-left: 0;
+  }
+
+  :root[data-design='aurora'] .market-footer {
+    width: calc(100% - 16px);
+    margin-bottom: 8px;
+    border-radius: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root[data-design='aurora'] .product-page__title {
+    font-size: 20px;
+  }
+
+  :root[data-design='aurora'] :is(.product-page__gallery, .product-page__info) {
+    padding: 16px;
+  }
+
+  :root[data-design='aurora'] .product-page__price {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  :root[data-design='aurora'] .product-tile__price {
+    font-size: 16px;
+  }
+}

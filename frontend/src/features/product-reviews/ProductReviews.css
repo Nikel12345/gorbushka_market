@@ -105,7 +105,7 @@
 .product-reviews__rating svg {
   width: 14px;
   height: 14px;
-  fill: #f5a623;
+  fill: var(--color-rating);
 }
 
 .product-reviews__sort {
@@ -240,7 +240,7 @@
 }
 
 .rating-stars__row--fill svg {
-  fill: #f5a623;
+  fill: var(--color-rating);
 }
 
 /* --- Форма отзыва --- */
@@ -282,7 +282,7 @@
 }
 
 .rating-input__star--on svg {
-  fill: #f5a623;
+  fill: var(--color-rating);
 }
 
 .rating-input__star:has(input:focus-visible) {

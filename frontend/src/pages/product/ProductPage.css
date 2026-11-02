@@ -165,7 +165,7 @@
 .product-page__star {
   width: 16px;
   height: 16px;
-  fill: #f5a623;
+  fill: var(--color-rating);
 }
 
 .product-page__badge-sep {

@@ -12,8 +12,9 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--color-surface);
-  box-shadow: 0 1px 0 var(--color-divider), 0 4px 16px rgba(0, 0, 0, 0.04);
+  background: var(--header-bg);
+  box-shadow: var(--header-shadow);
+  color: var(--header-fg);
 }
 
 .market-bar__inner {
@@ -56,8 +57,8 @@
   padding: 0 56px 0 16px;
   border: 2px solid transparent;
   border-radius: var(--radius-lg);
-  background: var(--color-surface-muted);
-  color: inherit;
+  background: var(--search-bg);
+  color: var(--color-text);
   font: inherit;
   font-size: 15px;
   outline: none;
@@ -67,16 +68,16 @@
 }
 
 .market-search__input::placeholder {
-  color: #9a9a9a;
+  color: var(--color-text-muted);
 }
 
-.market-search__input:hover {
-  background: #ececee;
+.market-search__input:hover:not(:focus) {
+  background: var(--search-bg-hover);
 }
 
 .market-search__input:focus {
-  border-color: var(--color-brand);
-  background: var(--color-surface);
+  border-color: var(--search-border-focus);
+  background: var(--search-bg-focus);
 }
 
 .market-search__button {
@@ -90,13 +91,13 @@
   height: 36px;
   border: 0;
   border-radius: var(--radius);
-  background: var(--color-brand);
+  background: var(--search-button-bg);
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
 .market-search__button:hover {
-  background: var(--color-brand-dark);
+  background: var(--search-button-bg-hover);
 }
 
 .market-search__button:focus-visible {
@@ -107,7 +108,7 @@
 .market-search__icon {
   width: 20px;
   height: 20px;
-  fill: #fff;
+  fill: var(--search-button-icon);
 }
 
 /* --- Разделы: иконка и подпись под ней --- */
@@ -130,7 +131,7 @@
   height: 56px;
   padding: 0 8px;
   border-radius: var(--radius);
-  color: var(--color-text);
+  color: var(--header-fg);
   text-decoration: none;
   transition: color 0.15s;
 }
@@ -138,7 +139,7 @@
 .market-nav__icon {
   width: 24px;
   height: 24px;
-  fill: #4a4a4a;
+  fill: var(--header-icon);
   transition: fill 0.15s;
 }
 
@@ -155,10 +156,10 @@
   min-width: 20px;
   height: 20px;
   padding: 0 5px;
-  border: 2px solid var(--color-surface);
+  border: 2px solid var(--header-bg);
   border-radius: 10px;
-  background: var(--color-brand);
-  color: #fff;
+  background: var(--header-badge-bg);
+  color: var(--header-badge-fg);
   font-size: 11px;
   font-weight: 700;
   line-height: 16px;
@@ -172,12 +173,12 @@
 
 .market-nav__link:hover,
 .market-nav__link--active {
-  color: var(--color-brand);
+  color: var(--header-accent);
 }
 
 .market-nav__link:hover .market-nav__icon,
 .market-nav__link--active .market-nav__icon {
-  fill: var(--color-brand);
+  fill: var(--header-accent);
 }
 
 .market-nav__link:focus-visible {

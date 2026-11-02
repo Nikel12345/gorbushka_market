@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet, ScrollRestoration } from 'react-router'
 import { useAuth } from '@/features/auth'
 import { useCart } from '@/features/cart'
-import { store } from '@/shared/config'
+import { DesignSwitcher, useDesign } from '@/features/design-switcher'
+import { config, store } from '@/shared/config'
 import { HeaderSearch } from './HeaderSearch'
 import { Logo } from './Logo'
 import { CartIcon, LoginIcon, OrdersIcon, StoreIcon } from './MarketNavIcons'
@@ -15,6 +16,7 @@ const navLinkClassName = ({ isActive }: { isActive: boolean }) =>
 export function AppLayout() {
   const { user, status } = useAuth()
   const { itemsCount } = useCart()
+  const { design, setDesign } = useDesign()
 
   return (
     <div className="market">
@@ -55,6 +57,7 @@ export function AppLayout() {
           </nav>
         </div>
       </header>
+      {config.designSwitcher && <DesignSwitcher value={design} onChange={setDesign} />}
 
       <main className="market-main">
         <Outlet />

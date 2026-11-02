@@ -16,7 +16,7 @@
 }
 
 .app-logo:focus-visible .app-logo__img {
-  outline: 2px solid var(--color-text);
+  outline: 2px solid var(--header-fg);
   outline-offset: 2px;
 }
 
