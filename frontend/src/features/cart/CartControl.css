@@ -194,6 +194,11 @@
   fill: var(--color-on-brand);
 }
 
+/* Подпись у круглой кнопки скрыта; варианты с кнопкой во всю ширину плитки её показывают */
+.cart-control__label {
+  display: none;
+}
+
 .cart-control--compact .cart-control__add:hover:not(:disabled) {
   background: var(--color-brand-dark);
 }

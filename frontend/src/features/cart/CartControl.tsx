@@ -91,7 +91,15 @@ export function CartControl({ productId, variant = 'full', canBuy = true, max }:
           aria-label={compact ? 'Добавить в корзину' : undefined}
           title={compact ? 'Добавить в корзину' : undefined}
         >
-          {compact ? <CartPlusIcon /> : 'Добавить в корзину'}
+          {compact ? (
+            <>
+              <CartPlusIcon />
+              {/* Подпись видна только в вариантах, где кнопка во всю ширину плитки (designs-showcase.css) */}
+              <span className="cart-control__label">В корзину</span>
+            </>
+          ) : (
+            'Добавить в корзину'
+          )}
         </button>
         {goToCart}
         {errorNode}

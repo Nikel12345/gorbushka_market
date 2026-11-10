@@ -114,6 +114,9 @@ export const catalogApi = {
       options,
     ),
 
+  /** Категории витрины плоским списком: родитель, затем его подкатегории (см. Category) */
+  categories: (options?: RequestOptions) => apiRequest<Category[]>('/catalog/categories/', options),
+
   /** 404 — товара нет или он снят с продажи */
   getProduct: (id: number, options?: RequestOptions) => apiRequest<ProductDetail>(`/catalog/products/${id}/`, options),
 

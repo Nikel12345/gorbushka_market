@@ -6,7 +6,8 @@ import { CheckoutPage } from '@/pages/checkout'
 import { HomePage } from '@/pages/home'
 import { LoginPage } from '@/pages/login'
 import { OrderDetailsPage, OrdersPage } from '@/pages/orders'
-import { ProductPage } from '@/pages/product'
+import { FavoritesPage } from '@/pages/favorites'
+import { ProductRoute } from '@/pages/product'
 import { ProfilePage } from '@/pages/profile'
 import { RegisterPage } from '@/pages/register'
 import { CategoriesPage } from '@/pages/seller-categories'
@@ -26,8 +27,11 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'products/:productId', element: <ProductPage /> },
+      // У «витринных» вариантов дизайна — своя раскладка страницы товара
+      { path: 'products/:productId', element: <ProductRoute /> },
       { path: 'about', element: <AboutPage /> },
+      // Избранное — в браузере, без входа
+      { path: 'favorites', element: <FavoritesPage /> },
       {
         path: 'login',
         element: (

@@ -1,0 +1,784 @@
+/*
+ * «Витринные» варианты дизайна: «Витрина», «Ночь», «Афиша». Кроме токенов и стиля компонентов,
+ * у них своя главная (features/storefront: первый экран, промо, блок о магазине — Storefront.css)
+ * и полоса категорий под шапкой. Общие правила — в начале файла, затем каждый вариант.
+ */
+
+/* ===================== Общее для трёх вариантов ===================== */
+
+/* Полосы прокрутки видны, только пока листают (класс is-scrolling ставит usePageScrollFlash / useScrollFlash) */
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']),
+.x-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']).is-scrolling,
+.x-scroll.is-scrolling {
+  scrollbar-color: var(--scrollbar-thumb, rgba(17, 17, 20, 0.32)) transparent;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])::-webkit-scrollbar,
+.x-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])::-webkit-scrollbar-thumb,
+.x-scroll::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: transparent;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']).is-scrolling::-webkit-scrollbar-thumb,
+.x-scroll.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(17, 17, 20, 0.32));
+}
+
+/* Кнопка «Смотреть каталог» прокручивает сюда — под липкой шапкой */
+#catalog {
+  scroll-margin-top: calc(var(--market-bar-height) + 8px);
+}
+
+/* --- Строка над шапкой («Витрина») --- */
+
+.market-utility {
+  background: var(--color-surface-muted);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.market-utility__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 24px;
+  max-width: var(--market-width);
+  margin: 0 auto;
+  padding: 8px 24px;
+}
+
+.market-utility__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+}
+
+.market-utility__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.market-utility__item .sf-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.market-utility__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.market-utility__link:hover {
+  color: var(--color-brand);
+}
+
+/* --- Полоса категорий под шапкой --- */
+
+.market-cats {
+  border-bottom: 1px solid var(--cats-border, var(--color-divider));
+  background: var(--cats-bg, var(--color-surface));
+}
+
+.market-cats__inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: var(--market-width);
+  height: 50px;
+  margin: 0 auto;
+  padding: 0 24px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.market-cats__link {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--cats-radius, 999px);
+  color: var(--cats-fg, var(--color-text));
+  font-family: var(--cats-font, inherit);
+  font-size: var(--cats-size, 15px);
+  font-weight: 500;
+  letter-spacing: var(--cats-tracking, 0);
+  text-transform: var(--cats-case, none);
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.market-cats__link:hover {
+  background: var(--cats-hover, var(--color-surface-muted));
+  color: var(--cats-fg, var(--color-text));
+}
+
+.market-cats__link--active,
+.market-cats__link--active:hover {
+  background: var(--cats-active-bg, var(--color-text));
+  color: var(--cats-active-fg, var(--color-surface));
+}
+
+.market-cats__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* --- Плитка товара: кнопка «В корзину» во всю ширину под карточкой, а не кружок на фото --- */
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: var(--card-pad);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile-wrap > .product-tile {
+  flex: 1;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+  .product-tile-wrap
+  > .product-tile:focus-visible {
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile .product-image {
+  border-radius: var(--image-radius);
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile__body {
+  padding: 12px 2px 0;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile__action {
+  position: static;
+  display: block;
+  aspect-ratio: auto;
+  padding: 12px 0 0;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile__action .cart-control--compact {
+  align-items: stretch;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+  .product-tile__action
+  .cart-control--compact
+  .cart-control__add {
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: var(--btn-border, 0);
+  border-radius: var(--btn-radius);
+  background: var(--btn-bg);
+  box-shadow: none;
+  color: var(--btn-fg);
+  font-family: var(--btn-font, inherit);
+  font-size: var(--btn-size, 15px);
+  font-weight: 600;
+  letter-spacing: var(--btn-tracking, 0);
+  text-transform: var(--btn-case, none);
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+  .product-tile__action
+  .cart-control--compact
+  .cart-control__add:hover:not(:disabled) {
+  background: var(--btn-bg-hover);
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile__action .cart-control__icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha']) .product-tile__action .cart-control__label {
+  display: inline;
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+  .product-tile__action
+  .cart-control--compact
+  .cart-control__stepper {
+  justify-content: space-between;
+  width: 100%;
+  height: 42px;
+  border-radius: var(--btn-radius);
+  background: var(--btn-bg);
+  box-shadow: none;
+  color: var(--btn-fg);
+}
+
+:root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+  .product-tile__action
+  .cart-control--compact
+  .cart-control__step {
+  width: 52px;
+  color: var(--btn-fg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:is([data-design='vitrina'], [data-design='night']) .product-tile .product-image > img {
+    transition: transform 0.35s ease;
+  }
+
+  :root:is([data-design='vitrina'], [data-design='night']) .product-tile--link:hover .product-image > img {
+    transform: scale(1.04);
+  }
+}
+
+@media (max-width: 600px) {
+  :root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+    .product-tile__action
+    .cart-control--compact
+    .cart-control__add,
+  :root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+    .product-tile__action
+    .cart-control--compact
+    .cart-control__stepper {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  :root:is([data-design='vitrina'], [data-design='night'], [data-design='afisha'])
+    .product-tile__action
+    .cart-control--compact
+    .cart-control__step {
+    width: 40px;
+  }
+}
+
+@media (max-width: 720px) {
+  .market-utility {
+    display: none;
+  }
+
+  .market-cats__inner {
+    height: 46px;
+    padding: 0 8px;
+  }
+}
+
+/* ===================== «Витрина»: светлая, воздушная, малиновый — только действия ===================== */
+
+:root[data-design='vitrina'] {
+  --color-text: #111114;
+  --color-text-secondary: #6b6b73;
+  --color-text-muted: #8e8e96;
+  --color-divider: #ececef;
+  --color-input-border: #e2e2e7;
+  --color-input-border-hover: #c9c9d0;
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f5f7;
+  --color-surface-pressed: #ececef;
+  --color-surface-subtle: #fafafb;
+  --color-image-bg: #f5f5f7;
+  --color-icon: #3a3a40;
+
+  --header-shadow: 0 1px 0 var(--color-divider);
+  --search-bg: #f2f2f4;
+  --search-bg-hover: #ececef;
+  --search-button-bg: #111114;
+  --search-button-bg-hover: #2c2c33;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+  --shadow-1: 0 0 0 1px var(--color-divider);
+  --shadow-2: 0 14px 40px rgba(17, 17, 20, 0.08);
+
+  --font-heading: 'Inter Tight', 'Golos Text', 'Segoe UI', sans-serif;
+
+  --card-pad: 0px;
+  --card-radius: 0;
+  --card-bg: transparent;
+  --card-shadow: none;
+  --image-radius: 18px;
+  --btn-bg: var(--color-brand);
+  --btn-bg-hover: var(--color-brand-dark);
+  --btn-fg: #ffffff;
+  --btn-radius: 12px;
+  --scrollbar-thumb: rgba(17, 17, 20, 0.32);
+}
+
+:root[data-design='vitrina'] :is(h1, h2) {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+:root[data-design='vitrina'] .catalog__title {
+  font-size: 34px;
+}
+
+/* Логотип со скруглёнными углами */
+:root[data-design='vitrina'] .market-bar .app-logo__img {
+  border-radius: 10px;
+}
+
+:root[data-design='vitrina'] .market-search__input {
+  border-radius: 14px;
+}
+
+:root[data-design='vitrina'] .market-search__button {
+  border-radius: 11px;
+}
+
+/* Фильтры и сортировка на белом — светло-серой подложкой вместо тени */
+:root[data-design='vitrina'] .product-filters {
+  background: var(--color-surface-muted);
+  box-shadow: none;
+}
+
+:root[data-design='vitrina'] .catalog__sort .ui-input {
+  background-color: var(--color-surface-muted);
+}
+
+:root[data-design='vitrina'] .product-tile__price {
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+:root[data-design='vitrina'] .feed-promo__link {
+  border-radius: 20px;
+  box-shadow: none;
+}
+
+:root[data-design='vitrina'] .product-page {
+  box-shadow: 0 0 0 1px var(--color-divider);
+}
+
+:root[data-design='vitrina'] .product-page__price {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+:root[data-design='vitrina'] .ui-button {
+  border-radius: 999px;
+}
+
+:root[data-design='vitrina'] .market-footer {
+  border-top: 0;
+  background: var(--color-surface-muted);
+}
+
+/* ===================== «Ночь»: тёмная кинематографичная витрина ===================== */
+
+:root[data-design='night'] {
+  color-scheme: dark;
+
+  /* Малиновый логотипа на чёрном не читается — для кнопок и ссылок светлее */
+  --color-brand: #e0245a;
+  --color-brand-dark: #c41b4c;
+  --color-brand-light: rgba(255, 77, 115, 0.14);
+  --color-danger: #ff5a5f;
+  --color-danger-dark: #e64a50;
+  --color-success: #4ade9b;
+  --color-success-light: rgba(74, 222, 155, 0.14);
+  --color-text: #f5f5f7;
+  --color-text-secondary: #a3a3ad;
+  --color-text-muted: #7c7c86;
+  --color-divider: #232328;
+  --color-input-bg: #151518;
+  --color-input-border: #2e2e34;
+  --color-input-border-hover: #45454d;
+  --color-hover: rgba(255, 255, 255, 0.06);
+  --color-bg: #0b0b0d;
+  --color-surface: #151518;
+  --color-surface-muted: #1e1e22;
+  --color-surface-pressed: #2b2b30;
+  --color-surface-subtle: #121215;
+  --color-image-bg: #ececef;
+  --color-icon: #c9c9d0;
+  --color-disabled: #55555c;
+  --color-overlay: rgba(0, 0, 0, 0.75);
+  --color-backdrop: rgba(0, 0, 0, 0.7);
+  --color-spinner-track: #2e2e34;
+
+  --chip-neutral-bg: #26262b;
+  --chip-neutral-fg: #c9c9d0;
+  --chip-info-bg: rgba(77, 148, 255, 0.16);
+  --chip-info-fg: #8ab8ff;
+  --chip-success-bg: rgba(74, 222, 155, 0.14);
+  --chip-success-fg: #7fe6b5;
+  --chip-warning-bg: rgba(245, 166, 35, 0.16);
+  --chip-warning-fg: #f5b94a;
+
+  --header-bg: #0b0b0d;
+  --header-fg: #f5f5f7;
+  --header-icon: #c9c9d0;
+  --header-accent: #ff4d73;
+  --header-shadow: 0 1px 0 var(--color-divider);
+  --search-bg: #151518;
+  --search-bg-hover: #1e1e22;
+  --search-bg-focus: #151518;
+  --search-border-focus: #ff4d73;
+
+  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --shadow-1: 0 0 0 1px var(--color-divider);
+  --shadow-2: 0 0 0 1px #34343a, 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-dialog: 0 0 0 1px var(--color-divider), 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-brand: 0 2px 10px rgba(0, 0, 0, 0.45);
+
+  --font-family: Onest, 'Segoe UI', Roboto, system-ui, -apple-system, Arial, sans-serif;
+  /* Широкий геометричный — заголовки и цены */
+  --font-heading: Unbounded, Onest, 'Segoe UI', sans-serif;
+
+  --cats-bg: #0b0b0d;
+  --cats-border: var(--color-divider);
+  --cats-fg: #c9c9d0;
+  --cats-hover: #1e1e22;
+  --cats-active-bg: #f5f5f7;
+  --cats-active-fg: #0b0b0d;
+
+  --card-pad: 10px;
+  --card-radius: 20px;
+  --card-bg: var(--color-surface);
+  --card-shadow: 0 0 0 1px var(--color-divider);
+  --image-radius: 14px;
+  --btn-bg: var(--color-brand);
+  --btn-bg-hover: var(--color-brand-dark);
+  --btn-fg: #ffffff;
+  --btn-radius: 12px;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.3);
+}
+
+:root[data-design='night'] :is(h1, h2) {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Широкий шрифт — заголовки чуть мельче */
+:root[data-design='night'] :is(.catalog__title, .cart-page__title, .checkout__title, .orders-page__title),
+:root[data-design='night'] .product-page__title {
+  font-size: 26px;
+}
+
+:root[data-design='night'] :is(.product-shelf__title, .product-reviews__title, .cart-recommendations__title) {
+  font-size: 20px;
+}
+
+:root[data-design='night'] .product-filters__title {
+  font-size: 16px;
+}
+
+:root[data-design='night'] .market-bar .app-logo__img {
+  border-radius: 10px;
+}
+
+:root[data-design='night'] .market-search__input {
+  border-color: #2e2e34;
+}
+
+:root[data-design='night'] .market-search__input:focus {
+  border-color: var(--search-border-focus);
+}
+
+/* Стрелка сортировки — картинка, токен в неё не попадёт */
+:root[data-design='night'] .catalog__sort .ui-input {
+  border-color: var(--color-input-border);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23f5f5f7' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+:root[data-design='night'] .product-tile-wrap:hover {
+  box-shadow: 0 0 0 1px #34343a;
+}
+
+:root[data-design='night'] .product-tile__title {
+  color: #d4d4da;
+}
+
+:root[data-design='night'] .product-tile__price {
+  font-size: 19px;
+}
+
+:root[data-design='night'] .product-page__price {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+:root[data-design='night'] .ui-button {
+  border-radius: 999px;
+}
+
+:root[data-design='night'] .feed-promo__label {
+  background: rgba(11, 11, 13, 0.75);
+  color: #d4d4da;
+}
+
+:root[data-design='night'] .market-footer {
+  background: #0b0b0d;
+}
+
+/* ===================== «Афиша»: плакат старой Горбушки ===================== */
+
+:root[data-design='afisha'] {
+  --color-text: #0d0d0d;
+  --color-text-secondary: #5c5c5c;
+  --color-text-muted: #8a8a8a;
+  --color-divider: #dcdcdc;
+  --color-input-border: #0d0d0d;
+  --color-input-border-hover: #0d0d0d;
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f2f2f0;
+  --color-surface-pressed: #e6e6e3;
+  --color-surface-subtle: #fafaf9;
+  --color-icon: #0d0d0d;
+  --color-rating: #0d0d0d;
+
+  /* Шапка того же малинового, что фон логотипа: картинка сливается с ней */
+  --header-bg: var(--color-brand);
+  --header-fg: #ffffff;
+  --header-icon: #ffffff;
+  --header-accent: #ffffff;
+  --header-shadow: 0 2px 0 #0d0d0d;
+  --header-badge-bg: #0d0d0d;
+  --header-badge-fg: #ffffff;
+  --search-bg: #ffffff;
+  --search-bg-hover: #ffffff;
+  --search-bg-focus: #ffffff;
+  --search-border-focus: #0d0d0d;
+  --search-button-bg: #0d0d0d;
+  --search-button-bg-hover: #333333;
+  --search-button-icon: #ffffff;
+
+  --radius-sm: 2px;
+  --radius: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --shadow-1: 0 0 0 2px #0d0d0d;
+  --shadow-2: 0 0 0 2px #0d0d0d, 6px 6px 0 #0d0d0d;
+  --shadow-brand: none;
+
+  /* Узкий жирный — как буквы логотипа */
+  --font-heading: Oswald, 'Arial Narrow', 'Golos Text', sans-serif;
+
+  --cats-bg: #0d0d0d;
+  --cats-border: #0d0d0d;
+  --cats-fg: #ffffff;
+  --cats-hover: #2a2a2a;
+  --cats-active-bg: #ffffff;
+  --cats-active-fg: #0d0d0d;
+  --cats-radius: 2px;
+  --cats-font: Oswald, 'Arial Narrow', sans-serif;
+  --cats-size: 16px;
+  --cats-tracking: 0.05em;
+  --cats-case: uppercase;
+
+  --card-pad: 14px;
+  --card-radius: 0;
+  --card-bg: #ffffff;
+  --card-shadow: inset 0 0 0 2px #0d0d0d;
+  --image-radius: 0;
+  --btn-bg: #0d0d0d;
+  --btn-bg-hover: var(--color-brand);
+  --btn-fg: #ffffff;
+  --btn-radius: 4px;
+  --btn-font: Oswald, 'Arial Narrow', sans-serif;
+  --btn-size: 16px;
+  --btn-tracking: 0.05em;
+  --btn-case: uppercase;
+  --scrollbar-thumb: rgba(13, 13, 13, 0.45);
+}
+
+:root[data-design='afisha'] :is(h1, h2) {
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+:root[data-design='afisha'] .catalog__title {
+  font-size: 40px;
+  line-height: 1;
+}
+
+/* Поиск: белое поле в чёрной рамке с жёсткой тенью, кнопка встроена справа */
+:root[data-design='afisha'] .market-search__input {
+  border-color: #0d0d0d;
+  box-shadow: 4px 4px 0 #0d0d0d;
+}
+
+:root[data-design='afisha'] .market-search__button {
+  top: 2px;
+  right: 2px;
+  height: auto;
+  bottom: 2px;
+  width: 52px;
+  border-radius: 2px;
+}
+
+:root[data-design='afisha'] .market-nav__link:hover .market-nav__label,
+:root[data-design='afisha'] .market-nav__link--active .market-nav__label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Лента — как прайс-лист: сетка из чёрных линий */
+:root[data-design='afisha'] .catalog .product-grid {
+  gap: 0;
+  border-top: 2px solid #0d0d0d;
+  border-left: 2px solid #0d0d0d;
+}
+
+:root[data-design='afisha'] .catalog .product-grid > li {
+  border-right: 2px solid #0d0d0d;
+  border-bottom: 2px solid #0d0d0d;
+}
+
+:root[data-design='afisha'] .catalog .product-grid > li.feed-promo {
+  padding: 12px;
+}
+
+:root[data-design='afisha'] .catalog .product-tile-wrap {
+  box-shadow: none;
+}
+
+:root[data-design='afisha'] .product-tile__price {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+:root[data-design='afisha'] .product-tile__badge {
+  border-radius: 0;
+  background: #0d0d0d;
+  font-weight: 600;
+}
+
+:root[data-design='afisha'] .product-filters {
+  box-shadow:
+    0 0 0 2px #0d0d0d,
+    4px 4px 0 #0d0d0d;
+}
+
+:root[data-design='afisha'] .catalog__sort .ui-input {
+  border: 2px solid #0d0d0d;
+}
+
+:root[data-design='afisha'] .ui-input {
+  border-width: 2px;
+}
+
+:root[data-design='afisha'] .ui-button {
+  border: 2px solid #0d0d0d;
+  font-weight: 600;
+}
+
+:root[data-design='afisha'] .ui-button--primary {
+  box-shadow: 3px 3px 0 #0d0d0d;
+}
+
+:root[data-design='afisha'] .feed-promo__link {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Страница товара: карточка в чёрной рамке с жёсткой тенью, цена — плакатным шрифтом */
+:root[data-design='afisha'] .product-page {
+  box-shadow:
+    0 0 0 2px #0d0d0d,
+    6px 6px 0 #0d0d0d;
+}
+
+:root[data-design='afisha'] .product-page__title {
+  font-size: 36px;
+  line-height: 1.05;
+}
+
+:root[data-design='afisha'] .product-page__price-box {
+  border: 2px solid #0d0d0d;
+  background: #ffffff;
+}
+
+:root[data-design='afisha'] .product-page__price {
+  font-family: var(--font-heading);
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+:root[data-design='afisha'] .product-page__tile {
+  border: 2px solid #0d0d0d;
+  background: #ffffff;
+}
+
+:root[data-design='afisha'] :is(.cart-control--full .cart-control__add, .cart-control__go-link) {
+  border: 2px solid #0d0d0d;
+  box-shadow: 4px 4px 0 #0d0d0d;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+:root[data-design='afisha'] .product-page__variant {
+  border-color: #0d0d0d;
+}
+
+:root[data-design='afisha'] .product-page__variant--selected {
+  background: #0d0d0d;
+  color: #ffffff;
+}
+
+:root[data-design='afisha'] .market-footer {
+  border-top: 2px solid #0d0d0d;
+}
+
+@media (max-width: 720px) {
+  :root[data-design='afisha'] .market-search__input {
+    box-shadow: 3px 3px 0 #0d0d0d;
+  }
+}
+
+@media (max-width: 600px) {
+  :root[data-design='afisha'] .product-tile__price {
+    font-size: 21px;
+  }
+
+  :root[data-design='afisha'] .catalog .product-tile-wrap {
+    --card-pad: 10px;
+  }
+
+  :root[data-design='afisha'] .catalog__title {
+    font-size: 32px;
+  }
+}
